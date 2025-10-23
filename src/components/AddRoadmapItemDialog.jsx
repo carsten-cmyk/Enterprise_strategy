@@ -10,11 +10,11 @@ import { Input, Textarea, Label } from './ui/Input';
 import { Button } from './ui/Button';
 
 const SUPPORT_OPTIONS = [
-  { value: 'leverage', label: 'Leverage (Emerald)' },
-  { value: 'enhance', label: 'Enhance (Amber)' },
+  { value: 'leverage', label: 'Maintain (Emerald)' },
+  { value: 'enhance', label: 'Uplift (Amber)' },
   { value: 'transform', label: 'Transform (Rose)' },
-  { value: 'build', label: 'Build (Blue)' },
-  { value: 'not-touched', label: 'Not Touched (White)' }
+  { value: 'build', label: 'New build (Blue)' },
+  { value: 'not-touched', label: 'TBD (White)' }
 ];
 
 const STATUS_OPTIONS = [

@@ -1,31 +1,51 @@
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, TrendingUp, Target, Package, Calendar } from 'lucide-react';
+import { BarChart3, TrendingUp, DollarSign, CreditCard, Repeat } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useTransformationPlanning } from '../data/transformationPlanningStore';
+import { useSettings } from '../data/settingsStore';
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { plannings } = useTransformationPlanning();
+  const { currency } = useSettings();
 
   // Calculate statistics
   const totalPlannings = plannings.length;
-  const totalCapabilities = plannings.reduce((sum, p) => sum + (p.level0Columns?.length || 0), 0);
-  const totalComponents = plannings.reduce((sum, p) => {
-    return sum + p.level0Columns?.reduce((colSum, col) => colSum + (col.components?.length || 0), 0) || 0;
-  }, 0);
   const totalRoadmapItems = plannings.reduce((sum, p) => sum + (p.roadmapItems?.length || 0), 0);
   const totalSolutions = plannings.reduce((sum, p) => sum + (p.solutions?.length || 0), 0);
 
-  // Calculate support type distribution across components
+  // Calculate financial statistics from solutions
+  const totalInvestmentBudget = plannings.reduce((sum, p) => {
+    return sum + (p.solutions?.reduce((solSum, sol) => {
+      const budget = parseFloat(sol.investmentBudget) || 0;
+      return solSum + budget;
+    }, 0) || 0);
+  }, 0);
+
+  const totalAnnualLicenses = plannings.reduce((sum, p) => {
+    return sum + (p.solutions?.reduce((solSum, sol) => {
+      const licenses = parseFloat(sol.annualLicenseCost) || 0;
+      return solSum + licenses;
+    }, 0) || 0);
+  }, 0);
+
+  const totalAnnualMaintenance = plannings.reduce((sum, p) => {
+    return sum + (p.solutions?.reduce((solSum, sol) => {
+      const maintenance = parseFloat(sol.annualMaintenance) || 0;
+      return solSum + maintenance;
+    }, 0) || 0);
+  }, 0);
+
+  // Calculate support type distribution across solutions
   const supportTypeDistribution = plannings.reduce((dist, p) => {
-    p.level0Columns?.forEach(col => {
-      col.components?.forEach(comp => {
-        const support = comp.support || 'not-touched';
-        dist[support] = (dist[support] || 0) + 1;
-      });
+    p.solutions?.forEach(sol => {
+      const support = sol.scope || 'not-touched';
+      dist[support] = (dist[support] || 0) + 1;
     });
     return dist;
   }, {});
+
+  const totalSupportItems = Object.values(supportTypeDistribution).reduce((sum, val) => sum + val, 0);
 
   // Calculate roadmap item status distribution
   const statusDistribution = plannings.reduce((dist, p) => {
@@ -43,11 +63,11 @@ export function DashboardPage() {
 
   // Support type config
   const supportTypes = [
-    { key: 'leverage', label: 'Leverage', color: 'bg-emerald-600', lightBg: 'bg-emerald-50', textColor: 'text-emerald-700' },
-    { key: 'enhance', label: 'Enhance', color: 'bg-amber-500', lightBg: 'bg-amber-50', textColor: 'text-amber-700' },
+    { key: 'leverage', label: 'Maintain', color: 'bg-emerald-600', lightBg: 'bg-emerald-50', textColor: 'text-emerald-700' },
+    { key: 'enhance', label: 'Uplift', color: 'bg-amber-500', lightBg: 'bg-amber-50', textColor: 'text-amber-700' },
     { key: 'transform', label: 'Transform', color: 'bg-rose-600', lightBg: 'bg-rose-50', textColor: 'text-rose-700' },
-    { key: 'build', label: 'Build', color: 'bg-blue-600', lightBg: 'bg-blue-50', textColor: 'text-blue-700' },
-    { key: 'not-touched', label: 'Not Touched', color: 'bg-slate-300', lightBg: 'bg-slate-50', textColor: 'text-slate-700' }
+    { key: 'build', label: 'New build', color: 'bg-blue-600', lightBg: 'bg-blue-50', textColor: 'text-blue-700' },
+    { key: 'not-touched', label: 'TBD', color: 'bg-slate-300', lightBg: 'bg-slate-50', textColor: 'text-slate-700' }
   ];
 
   // Status config
@@ -58,8 +78,6 @@ export function DashboardPage() {
     { key: 'on-hold', label: 'On Hold', color: 'bg-orange-500' }
   ];
 
-  const totalSupportItems = Object.values(supportTypeDistribution).reduce((sum, val) => sum + val, 0);
-
   return (
     <div className="p-8">
       {/* Header */}
@@ -69,54 +87,83 @@ export function DashboardPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Plannings</span>
-            <BarChart3 className="text-blue-600" size={20} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <BarChart3 className="text-blue-600" size={24} />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{totalPlannings}</div>
+          <div className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wide">Active uplifts</div>
+          <div className="text-4xl font-bold text-gray-900">{totalPlannings}</div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Capabilities</span>
-            <Target className="text-emerald-600" size={20} />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-2 bg-rose-50 rounded-lg">
+              <TrendingUp className="text-rose-600" size={24} />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{totalCapabilities}</div>
+          <div className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wide">Open roadmap items</div>
+          <div className="text-4xl font-bold text-gray-900">{totalRoadmapItems}</div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Components</span>
-            <Package className="text-amber-600" size={20} />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-2 bg-purple-50 rounded-lg">
+              <BarChart3 className="text-purple-600" size={24} />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{totalComponents}</div>
+          <div className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wide">Solutions & projects</div>
+          <div className="text-4xl font-bold text-gray-900">{totalSolutions}</div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Roadmap Items</span>
-            <Calendar className="text-rose-600" size={20} />
+        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-xl shadow-sm border border-emerald-100 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <DollarSign className="text-emerald-700" size={24} />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{totalRoadmapItems}</div>
+          <div className="text-sm font-medium text-emerald-700 mb-1 uppercase tracking-wide">Investment budget</div>
+          <div className="text-3xl font-bold text-emerald-900">
+            {totalInvestmentBudget.toLocaleString()}
+          </div>
+          <div className="text-sm font-medium text-emerald-600 mt-1">{currency}</div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Solutions</span>
-            <TrendingUp className="text-purple-600" size={20} />
+        <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl shadow-sm border border-amber-100 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-2 bg-amber-100 rounded-lg">
+              <CreditCard className="text-amber-700" size={24} />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{totalSolutions}</div>
+          <div className="text-sm font-medium text-amber-700 mb-1 uppercase tracking-wide">Annual licenses</div>
+          <div className="text-3xl font-bold text-amber-900">
+            {totalAnnualLicenses.toLocaleString()}
+          </div>
+          <div className="text-sm font-medium text-amber-600 mt-1">{currency}</div>
+        </div>
+
+        <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl shadow-sm border border-blue-100 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Repeat className="text-blue-700" size={24} />
+            </div>
+          </div>
+          <div className="text-sm font-medium text-blue-700 mb-1 uppercase tracking-wide">Annual maintenance</div>
+          <div className="text-3xl font-bold text-blue-900">
+            {totalAnnualMaintenance.toLocaleString()}
+          </div>
+          <div className="text-sm font-medium text-blue-600 mt-1">{currency}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* Support Type Distribution */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Support Type Distribution</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Project and solution distribution</h2>
           {totalSupportItems === 0 ? (
-            <p className="text-gray-500 text-center py-8">No components yet</p>
+            <p className="text-gray-500 text-center py-8">No projects or solutions yet</p>
           ) : (
             <div className="space-y-3">
               {supportTypes.map(type => {
@@ -173,10 +220,10 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Plannings */}
+      {/* Recent Business Uplifts */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Recent Plannings</h2>
+          <h2 className="text-xl font-bold text-gray-900">Recent business uplifts</h2>
           <Button
             variant="primary"
             size="sm"
@@ -188,12 +235,12 @@ export function DashboardPage() {
 
         {recentPlannings.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-500 mb-4">No plannings created yet</p>
+            <p className="text-gray-500 mb-4">No uplifts created yet</p>
             <Button
               variant="secondary"
               onClick={() => navigate('/transformation-planning')}
             >
-              Create Your First Planning
+              Create Your First Uplift
             </Button>
           </div>
         ) : (

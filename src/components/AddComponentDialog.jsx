@@ -74,11 +74,11 @@ export function AddComponentDialog({ open, onClose, onAdd, columnName }) {
               onChange={(e) => setSupport(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             >
-              <option value="leverage">Leverage (Emerald)</option>
-              <option value="enhance">Enhance (Amber)</option>
+              <option value="leverage">Maintain (Emerald)</option>
+              <option value="enhance">Uplift (Amber)</option>
               <option value="transform">Transform (Rose)</option>
-              <option value="build">Build (Blue)</option>
-              <option value="not-touched">Not Touched (White)</option>
+              <option value="build">New build (Blue)</option>
+              <option value="not-touched">TBD (White)</option>
             </select>
           </div>
 

@@ -9,27 +9,34 @@ import {
 } from './ui/Dialog';
 import { Input, Textarea, Label } from './ui/Input';
 import { Button } from './ui/Button';
+import { useSettings } from '../data/settingsStore';
 
 const TABS = [
   { id: 'basic', label: 'Basic Info' },
   { id: 'assessment', label: 'Assessment' },
   { id: 'planning', label: 'Planning' },
   { id: 'ownership', label: 'Ownership' },
-  { id: 'budget', label: 'Budget & Costs' },
+  { id: 'budget', label: 'Budget' },
   { id: 'actions', label: 'Action Plan' },
   { id: 'classification', label: 'Classification' }
 ];
 
 const SUPPORT_OPTIONS = [
-  { value: 'leverage', label: 'Leverage', color: 'bg-emerald-600', textColor: 'text-white' },
-  { value: 'enhance', label: 'Enhance', color: 'bg-amber-500', textColor: 'text-white' },
+  { value: 'leverage', label: 'Maintain', color: 'bg-emerald-600', textColor: 'text-white' },
+  { value: 'enhance', label: 'Uplift', color: 'bg-amber-500', textColor: 'text-white' },
   { value: 'transform', label: 'Transform', color: 'bg-rose-600', textColor: 'text-white' },
-  { value: 'build', label: 'Build', color: 'bg-blue-600', textColor: 'text-white' },
-  { value: 'not-touched', label: 'Not Touched', color: 'bg-slate-100', textColor: 'text-slate-700', border: 'border-2 border-slate-300' }
+  { value: 'build', label: 'New build', color: 'bg-blue-600', textColor: 'text-white' },
+  { value: 'not-touched', label: 'TBD', color: 'bg-slate-100', textColor: 'text-slate-700', border: 'border-2 border-slate-300' }
 ];
 
-export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapItems = [] }) {
+export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapItems = [], plannings = [], currentPlanningId = null }) {
+  const { people, vendors, addPerson, addVendor } = useSettings();
   const [activeTab, setActiveTab] = useState('basic');
+  const [showAddPersonDialog, setShowAddPersonDialog] = useState(false);
+  const [showAddVendorDialog, setShowAddVendorDialog] = useState(false);
+  const [newPersonName, setNewPersonName] = useState('');
+  const [newVendorName, setNewVendorName] = useState('');
+  const [personFieldTarget, setPersonFieldTarget] = useState(null); // 'business' or 'technical'
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -43,15 +50,15 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
     investmentEstimate: '',
 
     // Planning
-    timeline: '',
-    dependencies: '',
-    expectedGoLive: '',
+    startDate: '',
+    endDate: '',
+    expectedStart: '',
+    dependencies: [],
 
     // Ownership
     businessOwner: '',
     technicalOwner: '',
-    vendor: '',
-    implementationPartner: '',
+    vendor: 'TBD',
 
     // Gap Analysis
     gaps: [],
@@ -85,14 +92,14 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
         businessImpact: solution.businessImpact || '',
         investmentEstimate: solution.investmentEstimate || '',
 
-        timeline: solution.timeline || '',
-        dependencies: solution.dependencies || '',
-        expectedGoLive: solution.expectedGoLive || '',
+        startDate: solution.startDate || '',
+        endDate: solution.endDate || '',
+        expectedStart: solution.expectedStart || solution.expectedGoLive || '',
+        dependencies: Array.isArray(solution.dependencies) ? solution.dependencies : [],
 
         businessOwner: solution.businessOwner || '',
         technicalOwner: solution.technicalOwner || '',
-        vendor: solution.vendor || '',
-        implementationPartner: solution.implementationPartner || '',
+        vendor: solution.vendor || 'TBD',
 
         gaps: solution.gaps || [],
         actions: solution.actions || [],
@@ -182,6 +189,43 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
     }));
   };
 
+  // Dependency Management
+  const addDependency = (solutionId) => {
+    if (solutionId && !formData.dependencies.includes(solutionId)) {
+      setFormData(prev => ({
+        ...prev,
+        dependencies: [...prev.dependencies, solutionId]
+      }));
+    }
+  };
+
+  const removeDependency = (solutionId) => {
+    setFormData(prev => ({
+      ...prev,
+      dependencies: prev.dependencies.filter(id => id !== solutionId)
+    }));
+  };
+
+  // Get all available solutions from all plannings (excluding current solution)
+  const getAvailableSolutions = () => {
+    const allSolutions = [];
+    plannings.forEach(planning => {
+      (planning.solutions || []).forEach(sol => {
+        // Exclude current solution
+        if (sol.id !== solution?.id) {
+          allSolutions.push({
+            ...sol,
+            planningId: planning.id,
+            planningName: planning.name
+          });
+        }
+      });
+    });
+    return allSolutions;
+  };
+
+  const availableSolutions = getAvailableSolutions();
+
   const isValid = formData.name.trim();
 
   return (
@@ -240,7 +284,7 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
               </div>
 
               <div>
-                <Label>Support Type</Label>
+                <Label>Strategy</Label>
                 <div className="flex flex-wrap gap-3 mt-2">
                   {SUPPORT_OPTIONS.map(option => (
                     <button
@@ -256,6 +300,28 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
                       {option.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                <div>
+                  <Label>Latest Review</Label>
+                  <Input
+                    type="date"
+                    value={formData.latestReview}
+                    onChange={(value) => updateField('latestReview', value)}
+                    placeholder="dd/mm/yyyy"
+                  />
+                </div>
+
+                <div>
+                  <Label>Next Review</Label>
+                  <Input
+                    type="date"
+                    value={formData.nextReview}
+                    onChange={(value) => updateField('nextReview', value)}
+                    placeholder="dd/mm/yyyy"
+                  />
                 </div>
               </div>
             </div>
@@ -348,32 +414,106 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700 uppercase">Planning & Timeline</h3>
 
-              <div>
-                <Label>Timeline</Label>
-                <Input
-                  value={formData.timeline}
-                  onChange={(value) => updateField('timeline', value)}
-                  placeholder="E.g. Q1 2024, 6 months, 2024-2025"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Start Date</Label>
+                  <Input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(value) => updateField('startDate', value)}
+                  />
+                </div>
+
+                <div>
+                  <Label>End Date</Label>
+                  <Input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(value) => updateField('endDate', value)}
+                  />
+                </div>
               </div>
 
               <div>
-                <Label>Expected Go-Live</Label>
+                <Label>Expected Start</Label>
                 <Input
                   type="date"
-                  value={formData.expectedGoLive}
-                  onChange={(value) => updateField('expectedGoLive', value)}
+                  value={formData.expectedStart}
+                  onChange={(value) => updateField('expectedStart', value)}
                 />
               </div>
 
               <div>
-                <Label>Dependencies</Label>
-                <Textarea
-                  value={formData.dependencies}
-                  onChange={(value) => updateField('dependencies', value)}
-                  placeholder="List any dependencies on other projects, systems, or resources..."
-                  rows={4}
-                />
+                <div className="flex items-center justify-between mb-3">
+                  <Label>Dependencies (Solutions & Projects)</Label>
+                  {availableSolutions.length > 0 && (
+                    <span className="text-xs text-gray-500">
+                      {formData.dependencies.length} selected
+                    </span>
+                  )}
+                </div>
+
+                {availableSolutions.length === 0 ? (
+                  <p className="text-sm text-gray-500 italic">No other solutions available to link as dependencies</p>
+                ) : (
+                  <>
+                    <div className="mb-3">
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            addDependency(e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value="">Select a solution to add as dependency...</option>
+                        {availableSolutions
+                          .filter(sol => !formData.dependencies.includes(sol.id))
+                          .map(sol => (
+                            <option key={sol.id} value={sol.id}>
+                              {sol.name} ({sol.planningName})
+                            </option>
+                          ))
+                        }
+                      </select>
+                    </div>
+
+                    {formData.dependencies.length > 0 && (
+                      <div className="space-y-2">
+                        {formData.dependencies.map(depId => {
+                          const depSolution = availableSolutions.find(s => s.id === depId);
+                          if (!depSolution) return null;
+
+                          return (
+                            <div
+                              key={depId}
+                              className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
+                            >
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {depSolution.name}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {depSolution.planningName}
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeDependency(depId)}
+                                className="text-gray-400 hover:text-red-600"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -383,53 +523,86 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700 uppercase">Ownership & Partners</h3>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Business Owner</Label>
-                  <Input
+              <div>
+                <Label>Business Owner</Label>
+                <div className="flex gap-2 items-center">
+                  <select
                     value={formData.businessOwner}
-                    onChange={(value) => updateField('businessOwner', value)}
-                    placeholder="Name of business owner"
-                  />
-                </div>
-
-                <div>
-                  <Label>Technical Owner</Label>
-                  <Input
-                    value={formData.technicalOwner}
-                    onChange={(value) => updateField('technicalOwner', value)}
-                    placeholder="Name of technical owner"
-                  />
+                    onChange={(e) => {
+                      if (e.target.value === '__add_new__') {
+                        setPersonFieldTarget('business');
+                        setShowAddPersonDialog(true);
+                      } else {
+                        updateField('businessOwner', e.target.value);
+                      }
+                    }}
+                    className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="">Select person...</option>
+                    {people.map(person => (
+                      <option key={person.id} value={person.name}>{person.name}</option>
+                    ))}
+                    <option value="__add_new__">+ Add new person...</option>
+                  </select>
                 </div>
               </div>
 
               <div>
-                <Label>Implementation Partner</Label>
-                <Input
-                  value={formData.implementationPartner}
-                  onChange={(value) => updateField('implementationPartner', value)}
-                  placeholder="E.g. Accenture, Deloitte"
-                />
+                <Label>Technical Owner</Label>
+                <div className="flex gap-2 items-center">
+                  <select
+                    value={formData.technicalOwner}
+                    onChange={(e) => {
+                      if (e.target.value === '__add_new__') {
+                        setPersonFieldTarget('technical');
+                        setShowAddPersonDialog(true);
+                      } else {
+                        updateField('technicalOwner', e.target.value);
+                      }
+                    }}
+                    className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="">Select person...</option>
+                    {people.map(person => (
+                      <option key={person.id} value={person.name}>{person.name}</option>
+                    ))}
+                    <option value="__add_new__">+ Add new person...</option>
+                  </select>
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* Budget & Cost Tab */}
-          {activeTab === 'budget' && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase">Budget & Costs</h3>
 
               <div>
                 <Label>Vendor</Label>
-                <Input
-                  value={formData.vendor}
-                  onChange={(value) => updateField('vendor', value)}
-                  placeholder="Select or enter vendor"
-                />
+                <div className="flex gap-2 items-center">
+                  <select
+                    value={formData.vendor}
+                    onChange={(e) => {
+                      if (e.target.value === '__add_new__') {
+                        setShowAddVendorDialog(true);
+                      } else {
+                        updateField('vendor', e.target.value);
+                      }
+                    }}
+                    className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="TBD">TBD</option>
+                    {vendors.map(vendor => (
+                      <option key={vendor.id} value={vendor.name}>{vendor.name}</option>
+                    ))}
+                    <option value="__add_new__">+ Add new vendor...</option>
+                  </select>
+                </div>
                 <p className="text-xs text-gray-500 mt-1">
                   Manage vendors in Settings
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Budget Tab */}
+          {activeTab === 'budget' && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase">Budget</h3>
 
               <div>
                 <Label>Investment Budget</Label>
@@ -459,26 +632,6 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
                     value={formData.annualMaintenance}
                     onChange={(value) => updateField('annualMaintenance', value)}
                     placeholder="E.g. 25,000"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Latest Review</Label>
-                  <Input
-                    type="date"
-                    value={formData.latestReview}
-                    onChange={(value) => updateField('latestReview', value)}
-                  />
-                </div>
-
-                <div>
-                  <Label>Next Review</Label>
-                  <Input
-                    type="date"
-                    value={formData.nextReview}
-                    onChange={(value) => updateField('nextReview', value)}
                   />
                 </div>
               </div>
@@ -649,6 +802,120 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Add Person Dialog */}
+      <Dialog open={showAddPersonDialog} onClose={() => {
+        setShowAddPersonDialog(false);
+        setNewPersonName('');
+        setPersonFieldTarget(null);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Person</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 py-4">
+            <Label>Person Name</Label>
+            <Input
+              autoFocus
+              value={newPersonName}
+              onChange={setNewPersonName}
+              placeholder="Enter person name..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newPersonName.trim()) {
+                  addPerson(newPersonName.trim());
+                  if (personFieldTarget === 'business') {
+                    updateField('businessOwner', newPersonName.trim());
+                  } else if (personFieldTarget === 'technical') {
+                    updateField('technicalOwner', newPersonName.trim());
+                  }
+                  setNewPersonName('');
+                  setShowAddPersonDialog(false);
+                  setPersonFieldTarget(null);
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => {
+              setShowAddPersonDialog(false);
+              setNewPersonName('');
+              setPersonFieldTarget(null);
+            }}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (newPersonName.trim()) {
+                  addPerson(newPersonName.trim());
+                  if (personFieldTarget === 'business') {
+                    updateField('businessOwner', newPersonName.trim());
+                  } else if (personFieldTarget === 'technical') {
+                    updateField('technicalOwner', newPersonName.trim());
+                  }
+                  setNewPersonName('');
+                  setShowAddPersonDialog(false);
+                  setPersonFieldTarget(null);
+                }
+              }}
+              disabled={!newPersonName.trim()}
+            >
+              Add Person
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Vendor Dialog */}
+      <Dialog open={showAddVendorDialog} onClose={() => {
+        setShowAddVendorDialog(false);
+        setNewVendorName('');
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Vendor</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 py-4">
+            <Label>Vendor Name</Label>
+            <Input
+              autoFocus
+              value={newVendorName}
+              onChange={setNewVendorName}
+              placeholder="Enter vendor name..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newVendorName.trim()) {
+                  addVendor(newVendorName.trim());
+                  updateField('vendor', newVendorName.trim());
+                  setNewVendorName('');
+                  setShowAddVendorDialog(false);
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => {
+              setShowAddVendorDialog(false);
+              setNewVendorName('');
+            }}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (newVendorName.trim()) {
+                  addVendor(newVendorName.trim());
+                  updateField('vendor', newVendorName.trim());
+                  setNewVendorName('');
+                  setShowAddVendorDialog(false);
+                }
+              }}
+              disabled={!newVendorName.trim()}
+            >
+              Add Vendor
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

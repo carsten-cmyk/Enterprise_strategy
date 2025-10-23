@@ -18,11 +18,11 @@ const TABS = [
 ];
 
 const SUPPORT_OPTIONS = [
-  { value: 'leverage', label: 'Leverage', color: 'bg-emerald-600', textColor: 'text-white' },
-  { value: 'enhance', label: 'Enhance', color: 'bg-amber-500', textColor: 'text-white' },
+  { value: 'leverage', label: 'Maintain', color: 'bg-emerald-600', textColor: 'text-white' },
+  { value: 'enhance', label: 'Uplift', color: 'bg-amber-500', textColor: 'text-white' },
   { value: 'transform', label: 'Transform', color: 'bg-rose-600', textColor: 'text-white' },
-  { value: 'build', label: 'Build', color: 'bg-blue-600', textColor: 'text-white' },
-  { value: 'not-touched', label: 'Not Touched', color: 'bg-slate-100', textColor: 'text-slate-700', border: 'border-2 border-slate-300' }
+  { value: 'build', label: 'New build', color: 'bg-blue-600', textColor: 'text-white' },
+  { value: 'not-touched', label: 'TBD', color: 'bg-slate-100', textColor: 'text-slate-700', border: 'border-2 border-slate-300' }
 ];
 
 const PRIORITY_OPTIONS = [

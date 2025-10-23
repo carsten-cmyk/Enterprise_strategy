@@ -1,10 +1,29 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar, User, Trash2, Package, TrendingUp, Building2, DollarSign } from 'lucide-react';
+import { Plus, Calendar, User, Trash2, Package, TrendingUp, Building2, DollarSign, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { AddSolutionDialog } from '../components/AddSolutionDialog';
 import { SolutionDetailDialog } from '../components/SolutionDetailDialog';
 import { useTransformationPlanning } from '../data/transformationPlanningStore';
+
+// Maturity Indicator component (same as TransformationPlanningCard)
+function MaturityIndicator({ level, isActive }) {
+  const colors = {
+    1: 'bg-red-400',
+    2: 'bg-orange-400',
+    3: 'bg-yellow-400',
+    4: 'bg-green-400',
+    5: 'bg-green-500'
+  };
+
+  return (
+    <div
+      className={`w-3 h-3 rounded ${
+        isActive ? colors[level] : 'bg-gray-200'
+      }`}
+    />
+  );
+}
 
 export function SolutionsProjectsPage() {
   const navigate = useNavigate();
@@ -14,12 +33,14 @@ export function SolutionsProjectsPage() {
   const [selectedSolution, setSelectedSolution] = useState(null);
   const [selectedPlanningId, setSelectedPlanningId] = useState(null);
 
-  // Collect all solutions from all plannings
+  // Collect all solutions from all plannings with maturity data
   const allSolutions = plannings.flatMap(planning =>
     (planning.solutions || []).map(solution => ({
       ...solution,
       planningId: planning.id,
-      planningName: planning.name
+      planningName: planning.name,
+      currentMaturity: planning.businessGoal?.currentMaturity || 0,
+      desiredMaturity: planning.businessGoal?.desiredMaturity || 0
     }))
   );
 
@@ -79,6 +100,17 @@ export function SolutionsProjectsPage() {
       case 'build': return { bg: 'bg-blue-600', text: 'text-blue-600', lightBg: 'bg-blue-50' };
       case 'not-touched': return { bg: 'bg-slate-300', text: 'text-slate-600', lightBg: 'bg-slate-50' };
       default: return { bg: 'bg-slate-300', text: 'text-slate-600', lightBg: 'bg-slate-50' };
+    }
+  };
+
+  const getScopeLabel = (scope) => {
+    switch(scope) {
+      case 'leverage': return 'Maintain';
+      case 'enhance': return 'Uplift';
+      case 'transform': return 'Transform';
+      case 'build': return 'New build';
+      case 'not-touched': return 'TBD';
+      default: return 'TBD';
     }
   };
 
@@ -207,6 +239,14 @@ export function SolutionsProjectsPage() {
                   </button>
                 </div>
 
+                {/* Strategy */}
+                <div className="mb-3">
+                  <div className="text-xs font-medium text-gray-600 mb-1">Strategy</div>
+                  <div className={`inline-block px-2 py-1 rounded text-xs font-medium ${colors.bg} ${scope === 'not-touched' ? 'text-slate-700 border border-slate-300' : 'text-white'}`}>
+                    {getScopeLabel(scope)}
+                  </div>
+                </div>
+
                 {/* Description */}
                 {solution.description && (
                   <p className="text-sm text-gray-600 mb-3 line-clamp-2">
@@ -237,13 +277,40 @@ export function SolutionsProjectsPage() {
                   )}
                 </div>
 
-                {/* Go-Live Date */}
-                {solution.expectedGoLive && (
-                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-                    <Calendar size={14} />
+                {/* Expected Start Date */}
+                <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                  <Calendar size={14} />
+                  {scope === 'leverage' ? (
+                    <span>ongoing</span>
+                  ) : (
                     <span>
-                      Go-Live: {new Date(solution.expectedGoLive).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      Expected Start: {solution.expectedStart ? new Date(solution.expectedStart).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set'}
                     </span>
+                  )}
+                </div>
+
+                {/* Maturity Transformation */}
+                {solution.currentMaturity > 0 && solution.desiredMaturity > 0 && (
+                  <div className="mb-3">
+                    <div className="text-xs font-semibold text-gray-600 mb-1">
+                      Maturity Transformation
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {/* Current */}
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map(level => (
+                          <MaturityIndicator key={`current-${level}`} level={level} isActive={level <= solution.currentMaturity} />
+                        ))}
+                      </div>
+                      {/* Arrow */}
+                      <ArrowRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                      {/* Desired */}
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map(level => (
+                          <MaturityIndicator key={`desired-${level}`} level={level} isActive={level <= solution.desiredMaturity} />
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -268,6 +335,8 @@ export function SolutionsProjectsPage() {
         }}
         onAdd={handleAddSolution}
         roadmapItems={selectedPlanningId ? getRoadmapItemsForPlanning(selectedPlanningId) : []}
+        plannings={plannings}
+        currentPlanningId={selectedPlanningId}
       />
 
       <SolutionDetailDialog
@@ -280,6 +349,8 @@ export function SolutionsProjectsPage() {
         onSave={handleUpdateSolution}
         solution={selectedSolution}
         roadmapItems={selectedPlanningId ? getRoadmapItemsForPlanning(selectedPlanningId) : []}
+        plannings={plannings}
+        currentPlanningId={selectedPlanningId}
       />
     </div>
   );
