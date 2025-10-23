@@ -12,12 +12,14 @@ import { Button } from './ui/Button';
 export function AddComponentDialog({ open, onClose, onAdd, columnName }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [scope, setScope] = useState('not-touched');
+  const [support, setSupport] = useState('leverage');
+  const [priority, setPriority] = useState('medium');
 
   const handleClose = () => {
     setName('');
     setDescription('');
-    setScope('not-touched');
+    setSupport('leverage');
+    setPriority('medium');
     onClose();
   };
 
@@ -26,7 +28,8 @@ export function AddComponentDialog({ open, onClose, onAdd, columnName }) {
     onAdd({
       name: name.trim(),
       description: description.trim(),
-      scope
+      support,
+      priority
     });
     handleClose();
   };
@@ -65,15 +68,30 @@ export function AddComponentDialog({ open, onClose, onAdd, columnName }) {
           </div>
 
           <div>
-            <Label>Scope Classification</Label>
+            <Label>Support of new business goal</Label>
             <select
-              value={scope}
-              onChange={(e) => setScope(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+              value={support}
+              onChange={(e) => setSupport(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             >
-              <option value="primary">Primary - Direkte påvirket</option>
-              <option value="secondary">Secondary - Indirekte påvirket</option>
-              <option value="not-touched">Not Touched - Ikke påvirket</option>
+              <option value="leverage">Leverage (Emerald)</option>
+              <option value="enhance">Enhance (Amber)</option>
+              <option value="transform">Transform (Rose)</option>
+              <option value="build">Build (Blue)</option>
+              <option value="not-touched">Not Touched (White)</option>
+            </select>
+          </div>
+
+          <div>
+            <Label>Priority</Label>
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            >
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
             </select>
           </div>
         </div>

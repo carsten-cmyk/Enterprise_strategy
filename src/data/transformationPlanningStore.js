@@ -81,6 +81,7 @@ export function useTransformationPlanning() {
       if (p.id === planningId) {
         return {
           ...p,
+          name: updates.name || p.name, // Update top-level name if provided
           businessGoal: { ...p.businessGoal, ...updates },
           lastModified: new Date().toISOString()
         };
@@ -90,12 +91,13 @@ export function useTransformationPlanning() {
   };
 
   // Level 0 Column operations
-  const addLevel0Column = (planningId, name) => {
+  const addLevel0Column = (planningId, columnData) => {
     setPlannings(plannings.map(p => {
       if (p.id === planningId) {
         const newColumn = {
           id: Date.now().toString(),
-          name,
+          name: typeof columnData === 'string' ? columnData : columnData.name,
+          description: typeof columnData === 'object' ? (columnData.description || '') : '',
           order: p.level0Columns.length,
           components: []
         };
@@ -149,21 +151,21 @@ export function useTransformationPlanning() {
                 id: Date.now().toString(),
                 name: component.name,
                 description: component.description || '',
-                scope: component.scope || 'not-touched',
-                currentState: '',
-                desiredCapability: '',
-                businessImpact: '',
-                investmentEstimate: '',
-                timeline: '',
-                dependencies: '',
-                lifecycleStatus: '',
-                strategicImportance: '',
-                businessOwner: '',
-                technicalOwner: '',
-                businessProcess: '',
-                vendor: '',
-                technologyStack: '',
-                integrationPoints: ''
+                support: component.support || 'leverage',
+                priority: component.priority || 'medium',
+                currentState: component.currentState || '',
+                desiredCapability: component.desiredCapability || '',
+                businessImpact: component.businessImpact || '',
+                investmentEstimate: component.investmentEstimate || '',
+                timeline: component.timeline || '',
+                dependencies: component.dependencies || '',
+                lifecycleStatus: component.lifecycleStatus || '',
+                businessOwner: component.businessOwner || '',
+                technicalOwner: component.technicalOwner || '',
+                businessProcess: component.businessProcess || '',
+                vendor: component.vendor || '',
+                technologyStack: component.technologyStack || '',
+                integrationPoints: component.integrationPoints || ''
               };
               return {
                 ...col,
