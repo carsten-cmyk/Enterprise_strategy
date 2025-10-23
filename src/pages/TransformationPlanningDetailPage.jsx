@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Edit, Calendar, User } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Edit, Calendar, User, FileText } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { AddLevel0ColumnDialog } from '../components/AddLevel0ColumnDialog';
 import { AddComponentDialog } from '../components/AddComponentDialog';
@@ -10,6 +10,7 @@ import { AddRoadmapItemDialog } from '../components/AddRoadmapItemDialog';
 import { RoadmapItemDetailDialog } from '../components/RoadmapItemDetailDialog';
 import { AddSolutionDialog } from '../components/AddSolutionDialog';
 import { SolutionDetailDialog } from '../components/SolutionDetailDialog';
+import { CapabilityReportDialog } from '../components/CapabilityReportDialog';
 import { useTransformationPlanning } from '../data/transformationPlanningStore';
 
 export function TransformationPlanningDetailPage() {
@@ -24,10 +25,12 @@ export function TransformationPlanningDetailPage() {
   const [showRoadmapItemDetailDialog, setShowRoadmapItemDetailDialog] = useState(false);
   const [showAddSolutionDialog, setShowAddSolutionDialog] = useState(false);
   const [showSolutionDetailDialog, setShowSolutionDetailDialog] = useState(false);
+  const [showCapabilityReportDialog, setShowCapabilityReportDialog] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState(null);
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [selectedRoadmapItem, setSelectedRoadmapItem] = useState(null);
   const [selectedSolution, setSelectedSolution] = useState(null);
+  const [selectedCapabilityForReport, setSelectedCapabilityForReport] = useState(null);
 
   const {
     getPlanning,
@@ -161,6 +164,12 @@ export function TransformationPlanningDetailPage() {
     if (window.confirm(`Are you sure you want to delete "${solutionName}"?`)) {
       deleteSolution(id, solutionId);
     }
+  };
+
+  // Capability Report handler
+  const handleViewCapabilityReport = (column) => {
+    setSelectedCapabilityForReport(column);
+    setShowCapabilityReportDialog(true);
   };
 
   return (
@@ -313,6 +322,15 @@ export function TransformationPlanningDetailPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewCapabilityReport(column)}
+                          className="text-gray-400 hover:text-blue-600 -mt-1"
+                          title="View Detail Report"
+                        >
+                          <FileText size={14} />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -766,6 +784,16 @@ export function TransformationPlanningDetailPage() {
         onSave={handleUpdateSolution}
         solution={selectedSolution}
         roadmapItems={planning.roadmapItems || []}
+      />
+
+      <CapabilityReportDialog
+        open={showCapabilityReportDialog}
+        onClose={() => {
+          setShowCapabilityReportDialog(false);
+          setSelectedCapabilityForReport(null);
+        }}
+        capability={selectedCapabilityForReport}
+        planningName={planning.name}
       />
     </div>
   );

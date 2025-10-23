@@ -1,4 +1,4 @@
-import { LayoutGrid, Target, Settings } from 'lucide-react';
+import { Home, LayoutGrid, Target, Settings } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 function MenuItem({ icon: Icon, children, path, active }) {
@@ -47,6 +47,13 @@ export function Sidebar() {
 
       {/* Menu Items */}
       <nav className="flex-1 space-y-2 p-3">
+        <MenuItem icon={Home} path="/">
+          Dashboard
+          <span className="text-xs text-gray-400 block mt-0.5">
+            Overview of transformation initiatives
+          </span>
+        </MenuItem>
+
         <MenuItem icon={LayoutGrid} path="/solutions-projects">
           Solutions & Projects
           <span className="text-xs text-gray-400 block mt-0.5">
