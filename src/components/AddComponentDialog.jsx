@@ -12,13 +12,13 @@ import { Button } from './ui/Button';
 export function AddComponentDialog({ open, onClose, onAdd, columnName }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [support, setSupport] = useState('leverage');
+  const [support, setSupport] = useState('primary');
   const [priority, setPriority] = useState('medium');
 
   const handleClose = () => {
     setName('');
     setDescription('');
-    setSupport('leverage');
+    setSupport('primary');
     setPriority('medium');
     onClose();
   };
@@ -68,17 +68,15 @@ export function AddComponentDialog({ open, onClose, onAdd, columnName }) {
           </div>
 
           <div>
-            <Label>Support of new business goal</Label>
+            <Label>Strategy</Label>
             <select
               value={support}
               onChange={(e) => setSupport(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             >
-              <option value="leverage">Maintain (Emerald)</option>
-              <option value="enhance">Uplift (Amber)</option>
-              <option value="transform">Transform (Rose)</option>
-              <option value="build">New build (Blue)</option>
-              <option value="not-touched">TBD (White)</option>
+              <option value="primary">Primary function (Teal)</option>
+              <option value="secondary">Secondary function (Light Teal)</option>
+              <option value="not-touched">Not touched (Gray)</option>
             </select>
           </div>
 

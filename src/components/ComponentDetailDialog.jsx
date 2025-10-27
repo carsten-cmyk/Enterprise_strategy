@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -8,21 +9,19 @@ import {
 } from './ui/Dialog';
 import { Input, Textarea, Label } from './ui/Input';
 import { Button } from './ui/Button';
+import { useSettings } from '../data/settingsStore';
 
 const TABS = [
   { id: 'basic', label: 'Basic Info' },
   { id: 'assessment', label: 'Assessment' },
-  { id: 'planning', label: 'Planning' },
   { id: 'ownership', label: 'Ownership' },
   { id: 'technical', label: 'Technical' }
 ];
 
 const SUPPORT_OPTIONS = [
-  { value: 'leverage', label: 'Maintain', color: 'bg-emerald-600', textColor: 'text-white' },
-  { value: 'enhance', label: 'Uplift', color: 'bg-amber-500', textColor: 'text-white' },
-  { value: 'transform', label: 'Transform', color: 'bg-rose-600', textColor: 'text-white' },
-  { value: 'build', label: 'New build', color: 'bg-blue-600', textColor: 'text-white' },
-  { value: 'not-touched', label: 'TBD', color: 'bg-slate-100', textColor: 'text-slate-700', border: 'border-2 border-slate-300' }
+  { value: 'primary', label: 'Primary function', color: 'bg-teal-600', textColor: 'text-white' },
+  { value: 'secondary', label: 'Secondary function', color: 'bg-teal-100', textColor: 'text-teal-900' },
+  { value: 'not-touched', label: 'Not touched', color: 'bg-gray-200', textColor: 'text-gray-700' }
 ];
 
 const PRIORITY_OPTIONS = [
@@ -31,24 +30,43 @@ const PRIORITY_OPTIONS = [
   { value: 'low', label: 'Low' }
 ];
 
+const LIFECYCLE_OPTIONS = [
+  { value: 'Planning', label: 'Planning' },
+  { value: 'In Progress', label: 'In Progress' },
+  { value: 'Planned', label: 'Planned' },
+  { value: 'Active', label: 'Active' },
+  { value: 'Deprecated', label: 'Deprecated' }
+];
+
 export function ComponentDetailDialog({ open, onClose, onSave, component, columnName }) {
+  const { people, vendors, addPerson, addVendor } = useSettings();
   const [activeTab, setActiveTab] = useState('basic');
+  const [showAddPersonDialog, setShowAddPersonDialog] = useState(false);
+  const [showAddVendorDialog, setShowAddVendorDialog] = useState(false);
+  const [newPersonName, setNewPersonName] = useState('');
+  const [newVendorName, setNewVendorName] = useState('');
+  const [personFieldTarget, setPersonFieldTarget] = useState(null); // 'business' or 'technical'
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    support: 'leverage',
+    support: 'primary',
     priority: 'medium',
+
+    // Assessment
     currentState: '',
     desiredCapability: '',
     businessImpact: '',
-    investmentEstimate: '',
-    timeline: '',
-    dependencies: '',
-    lifecycleStatus: '',
+    gaps: [],
+
+    // Ownership
     businessOwner: '',
     technicalOwner: '',
     businessProcess: '',
-    vendor: '',
+
+    // Technical
+    vendor: 'TBD',
+    lifecycleStatus: 'Planning',
     technologyStack: '',
     integrationPoints: ''
   });
@@ -59,19 +77,20 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
       setFormData({
         name: component.name || '',
         description: component.description || '',
-        support: component.support || component.scope || 'leverage',
+        support: component.support || component.scope || 'primary',
         priority: component.priority || 'medium',
+
         currentState: component.currentState || '',
         desiredCapability: component.desiredCapability || '',
         businessImpact: component.businessImpact || '',
-        investmentEstimate: component.investmentEstimate || '',
-        timeline: component.timeline || '',
-        dependencies: component.dependencies || '',
-        lifecycleStatus: component.lifecycleStatus || '',
+        gaps: component.gaps || [],
+
         businessOwner: component.businessOwner || '',
         technicalOwner: component.technicalOwner || '',
         businessProcess: component.businessProcess || '',
-        vendor: component.vendor || '',
+
+        vendor: component.vendor || 'TBD',
+        lifecycleStatus: component.lifecycleStatus || 'Planning',
         technologyStack: component.technologyStack || '',
         integrationPoints: component.integrationPoints || ''
       });
@@ -80,28 +99,6 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
   }, [component, open]);
 
   const handleClose = () => {
-    if (!component) {
-      // Reset form if creating new
-      setFormData({
-        name: '',
-        description: '',
-        support: 'leverage',
-        priority: 'medium',
-        currentState: '',
-        desiredCapability: '',
-        businessImpact: '',
-        investmentEstimate: '',
-        timeline: '',
-        dependencies: '',
-        lifecycleStatus: '',
-        businessOwner: '',
-        technicalOwner: '',
-        businessProcess: '',
-        vendor: '',
-        technologyStack: '',
-        integrationPoints: ''
-      });
-    }
     setActiveTab('basic');
     onClose();
   };
@@ -116,28 +113,55 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Gap Management
+  const addGap = () => {
+    setFormData(prev => ({
+      ...prev,
+      gaps: [...prev.gaps, { id: Date.now(), description: '' }]
+    }));
+  };
+
+  const updateGap = (id, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      gaps: prev.gaps.map(gap =>
+        gap.id === id ? { ...gap, [field]: value } : gap
+      )
+    }));
+  };
+
+  const removeGap = (id) => {
+    setFormData(prev => ({
+      ...prev,
+      gaps: prev.gaps.filter(gap => gap.id !== id)
+    }));
+  };
+
   const isValid = formData.name.trim();
 
   return (
     <Dialog open={open} onClose={handleClose}>
       <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>
-            {component ? 'Edit Component' : 'New Component'}
-          </DialogTitle>
+          <DialogTitle>Edit Component</DialogTitle>
+          {columnName && (
+            <p className="text-sm text-gray-600 mt-1">
+              Under: {columnName}
+            </p>
+          )}
         </DialogHeader>
 
         {/* Tab Navigation */}
-        <div className="border-b border-gray-200 px-6 overflow-x-auto">
-          <nav className="flex gap-2 -mb-px min-w-max">
+        <div className="border-b border-gray-200 px-6">
+          <nav className="flex gap-1 -mb-px justify-between">
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                className={`py-3 px-3 border-b-2 font-medium text-xs transition-colors whitespace-nowrap flex-1 ${
                   activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 bg-blue-50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 {tab.label}
@@ -151,30 +175,32 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
           {/* Basic Info Tab */}
           {activeTab === 'basic' && (
             <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase">Basic Information</h3>
+
               <div>
                 <Label>
-                  Component Navn <span className="text-red-500">*</span>
+                  Component Name <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   autoFocus
                   value={formData.name}
                   onChange={(value) => updateField('name', value)}
-                  placeholder="F.eks. CRM System"
+                  placeholder="E.g. CRM System, Mobile App"
                 />
               </div>
 
               <div>
-                <Label>Beskrivelse</Label>
+                <Label>Description</Label>
                 <Textarea
                   value={formData.description}
                   onChange={(value) => updateField('description', value)}
-                  placeholder="Kort beskrivelse af komponenten..."
-                  rows={3}
+                  placeholder="Detailed description of the component..."
+                  rows={4}
                 />
               </div>
 
               <div>
-                <Label>Support of new business goal</Label>
+                <Label>Strategy</Label>
                 <div className="flex flex-wrap gap-3 mt-2">
                   {SUPPORT_OPTIONS.map(option => (
                     <button
@@ -195,21 +221,36 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
 
               <div>
                 <Label>Priority</Label>
-                <div className="flex gap-3 mt-2">
+                <select
+                  value={formData.priority}
+                  onChange={(e) => updateField('priority', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                >
                   {PRIORITY_OPTIONS.map(option => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => updateField('priority', option.value)}
-                      className={`px-4 py-2 rounded font-medium text-sm transition-all ${
-                        formData.priority === option.value
-                          ? 'bg-gray-800 text-white ring-2 ring-offset-2 ring-gray-600'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
+                    <option key={option.value} value={option.value}>
                       {option.label}
-                    </button>
+                    </option>
                   ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                <div>
+                  <Label>Latest Review</Label>
+                  <Input
+                    type="date"
+                    value={formData.latestReview}
+                    onChange={(value) => updateField('latestReview', value)}
+                  />
+                </div>
+
+                <div>
+                  <Label>Next Review</Label>
+                  <Input
+                    type="date"
+                    value={formData.nextReview}
+                    onChange={(value) => updateField('nextReview', value)}
+                  />
                 </div>
               </div>
             </div>
@@ -218,83 +259,79 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
           {/* Assessment Tab */}
           {activeTab === 'assessment' && (
             <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase">Assessment</h3>
+
               <div>
-                <Label>Current State</Label>
+                <Label>Current State (As-Is)</Label>
                 <Textarea
                   value={formData.currentState}
                   onChange={(value) => updateField('currentState', value)}
-                  placeholder="Beskriv nuværende tilstand, udfordringer og begrænsninger..."
-                  rows={4}
+                  placeholder="Describe the current state of this component..."
+                  rows={3}
                 />
               </div>
 
               <div>
-                <Label>Desired Capability</Label>
+                <Label>Desired Capability (To-Be)</Label>
                 <Textarea
                   value={formData.desiredCapability}
                   onChange={(value) => updateField('desiredCapability', value)}
-                  placeholder="Beskriv ønsket fremtidig capability og forbedringer..."
-                  rows={4}
+                  placeholder="Describe the desired future capability..."
+                  rows={3}
                 />
               </div>
 
-              <div>
-                <Label>Lifecycle Status</Label>
-                <Input
-                  value={formData.lifecycleStatus}
-                  onChange={(value) => updateField('lifecycleStatus', value)}
-                  placeholder="F.eks. Active, Sunset, Planned"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Angiv hvor i livscyklussen denne komponent befinder sig
-                </p>
-              </div>
-            </div>
-          )}
+              {/* Gap Analysis */}
+              <div className="pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <Label>Gap Analysis</Label>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={addGap}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus size={14} />
+                    Add Gap
+                  </Button>
+                </div>
 
-          {/* Planning Tab */}
-          {activeTab === 'planning' && (
-            <div className="space-y-4">
+                {formData.gaps.length === 0 ? (
+                  <p className="text-xs text-gray-500 italic">No gaps identified yet. Click "Add Gap" to add one.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {formData.gaps.map((gap, index) => (
+                      <div key={gap.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50 relative">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeGap(gap.id)}
+                          className="absolute top-2 right-2 text-gray-400 hover:text-red-600"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+
+                        <div className="pr-8">
+                          <Textarea
+                            value={gap.description}
+                            onChange={(value) => updateGap(gap.id, 'description', value)}
+                            placeholder="Describe the gap..."
+                            rows={2}
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <Label>Business Impact</Label>
                 <Textarea
                   value={formData.businessImpact}
                   onChange={(value) => updateField('businessImpact', value)}
-                  placeholder="Beskriv forventet forretningsværdi og impact..."
-                  rows={4}
-                />
-              </div>
-
-              <div>
-                <Label>Investment Estimate</Label>
-                <Input
-                  value={formData.investmentEstimate}
-                  onChange={(value) => updateField('investmentEstimate', value)}
-                  placeholder="F.eks. 500.000 DKK eller Low/Medium/High"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Estimeret investering for at opnå desired capability
-                </p>
-              </div>
-
-              <div>
-                <Label>Timeline</Label>
-                <Input
-                  value={formData.timeline}
-                  onChange={(value) => updateField('timeline', value)}
-                  placeholder="F.eks. Q2 2024 - Q4 2024"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Forventet tidsramme for implementering
-                </p>
-              </div>
-
-              <div>
-                <Label>Dependencies</Label>
-                <Textarea
-                  value={formData.dependencies}
-                  onChange={(value) => updateField('dependencies', value)}
-                  placeholder="Liste afhængigheder til andre komponenter, systemer eller projekter..."
+                  placeholder="Describe the expected business impact and benefits..."
                   rows={4}
                 />
               </div>
@@ -304,37 +341,58 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
           {/* Ownership Tab */}
           {activeTab === 'ownership' && (
             <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase">Ownership & Process</h3>
+
               <div>
                 <Label>Business Owner</Label>
-                <Input
+                <select
                   value={formData.businessOwner}
-                  onChange={(value) => updateField('businessOwner', value)}
-                  placeholder="F.eks. Head of Sales"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Hvem er forretningsejeren?
-                </p>
+                  onChange={(e) => {
+                    if (e.target.value === '__add_new__') {
+                      setPersonFieldTarget('business');
+                      setShowAddPersonDialog(true);
+                    } else {
+                      updateField('businessOwner', e.target.value);
+                    }
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Select person...</option>
+                  {people.map(person => (
+                    <option key={person.id} value={person.name}>{person.name}</option>
+                  ))}
+                  <option value="__add_new__">+ Add new person...</option>
+                </select>
               </div>
 
               <div>
                 <Label>Technical Owner</Label>
-                <Input
+                <select
                   value={formData.technicalOwner}
-                  onChange={(value) => updateField('technicalOwner', value)}
-                  placeholder="F.eks. IT Architecture Team"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Hvem er teknisk ansvarlig?
-                </p>
+                  onChange={(e) => {
+                    if (e.target.value === '__add_new__') {
+                      setPersonFieldTarget('technical');
+                      setShowAddPersonDialog(true);
+                    } else {
+                      updateField('technicalOwner', e.target.value);
+                    }
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Select person...</option>
+                  {people.map(person => (
+                    <option key={person.id} value={person.name}>{person.name}</option>
+                  ))}
+                  <option value="__add_new__">+ Add new person...</option>
+                </select>
               </div>
 
               <div>
                 <Label>Business Process</Label>
-                <Textarea
+                <Input
                   value={formData.businessProcess}
                   onChange={(value) => updateField('businessProcess', value)}
-                  placeholder="Beskriv hvilke forretningsprocesser denne komponent understøtter..."
-                  rows={4}
+                  placeholder="E.g. Sales & Marketing, Finance & Accounting"
                 />
               </div>
             </div>
@@ -343,13 +401,45 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
           {/* Technical Tab */}
           {activeTab === 'technical' && (
             <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase">Technical Information</h3>
+
               <div>
                 <Label>Vendor</Label>
-                <Input
+                <select
                   value={formData.vendor}
-                  onChange={(value) => updateField('vendor', value)}
-                  placeholder="F.eks. Salesforce, Microsoft, Custom built"
-                />
+                  onChange={(e) => {
+                    if (e.target.value === '__add_new__') {
+                      setShowAddVendorDialog(true);
+                    } else {
+                      updateField('vendor', e.target.value);
+                    }
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="TBD">TBD</option>
+                  {vendors.map(vendor => (
+                    <option key={vendor.id} value={vendor.name}>{vendor.name}</option>
+                  ))}
+                  <option value="__add_new__">+ Add new vendor...</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Manage vendors in Settings
+                </p>
+              </div>
+
+              <div>
+                <Label>Lifecycle Status</Label>
+                <select
+                  value={formData.lifecycleStatus}
+                  onChange={(e) => updateField('lifecycleStatus', e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {LIFECYCLE_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -357,8 +447,8 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
                 <Textarea
                   value={formData.technologyStack}
                   onChange={(value) => updateField('technologyStack', value)}
-                  placeholder="Liste teknologier, platforme og frameworks..."
-                  rows={4}
+                  placeholder="E.g. React, Node.js, PostgreSQL"
+                  rows={3}
                 />
               </div>
 
@@ -367,8 +457,8 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
                 <Textarea
                   value={formData.integrationPoints}
                   onChange={(value) => updateField('integrationPoints', value)}
-                  placeholder="Beskriv integrationer til andre systemer og komponenter..."
-                  rows={4}
+                  placeholder="E.g. ERP, CRM, Payment Gateway"
+                  rows={3}
                 />
               </div>
             </div>
@@ -377,17 +467,131 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
 
         <DialogFooter>
           <Button variant="secondary" onClick={handleClose}>
-            Annuller
+            Cancel
           </Button>
           <Button
             variant="primary"
             onClick={handleSave}
             disabled={!isValid}
           >
-            {component ? 'Gem Ændringer' : 'Tilføj Component'}
+            Save Changes
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Add Person Dialog */}
+      <Dialog open={showAddPersonDialog} onClose={() => {
+        setShowAddPersonDialog(false);
+        setNewPersonName('');
+        setPersonFieldTarget(null);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Person</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 py-4">
+            <Label>Person Name</Label>
+            <Input
+              autoFocus
+              value={newPersonName}
+              onChange={setNewPersonName}
+              placeholder="Enter person name..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newPersonName.trim()) {
+                  addPerson(newPersonName.trim());
+                  if (personFieldTarget === 'business') {
+                    updateField('businessOwner', newPersonName.trim());
+                  } else if (personFieldTarget === 'technical') {
+                    updateField('technicalOwner', newPersonName.trim());
+                  }
+                  setNewPersonName('');
+                  setShowAddPersonDialog(false);
+                  setPersonFieldTarget(null);
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => {
+              setShowAddPersonDialog(false);
+              setNewPersonName('');
+              setPersonFieldTarget(null);
+            }}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (newPersonName.trim()) {
+                  addPerson(newPersonName.trim());
+                  if (personFieldTarget === 'business') {
+                    updateField('businessOwner', newPersonName.trim());
+                  } else if (personFieldTarget === 'technical') {
+                    updateField('technicalOwner', newPersonName.trim());
+                  }
+                  setNewPersonName('');
+                  setShowAddPersonDialog(false);
+                  setPersonFieldTarget(null);
+                }
+              }}
+              disabled={!newPersonName.trim()}
+            >
+              Add Person
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Vendor Dialog */}
+      <Dialog open={showAddVendorDialog} onClose={() => {
+        setShowAddVendorDialog(false);
+        setNewVendorName('');
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Vendor</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 py-4">
+            <Label>Vendor Name</Label>
+            <Input
+              autoFocus
+              value={newVendorName}
+              onChange={setNewVendorName}
+              placeholder="Enter vendor name..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newVendorName.trim()) {
+                  addVendor(newVendorName.trim());
+                  updateField('vendor', newVendorName.trim());
+                  setNewVendorName('');
+                  setShowAddVendorDialog(false);
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => {
+              setShowAddVendorDialog(false);
+              setNewVendorName('');
+            }}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (newVendorName.trim()) {
+                  addVendor(newVendorName.trim());
+                  updateField('vendor', newVendorName.trim());
+                  setNewVendorName('');
+                  setShowAddVendorDialog(false);
+                }
+              }}
+              disabled={!newVendorName.trim()}
+            >
+              Add Vendor
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

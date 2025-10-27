@@ -7,6 +7,7 @@ export const useSettings = create(
       currency: 'DKK',
       vendors: [],
       people: [],
+      groups: [],
 
       setCurrency: (currency) => set({ currency }),
 
@@ -56,6 +57,24 @@ export const useSettings = create(
       removePerson: (personId) =>
         set((state) => ({
           people: state.people.filter((p) => p.id !== personId)
+        })),
+
+      // Group functions
+      addGroup: (groupData) =>
+        set((state) => ({
+          groups: [...state.groups, { id: Date.now(), ...groupData }]
+        })),
+
+      editGroup: (groupId, groupData) =>
+        set((state) => ({
+          groups: state.groups.map((g) =>
+            g.id === groupId ? { ...g, ...groupData } : g
+          )
+        })),
+
+      removeGroup: (groupId) =>
+        set((state) => ({
+          groups: state.groups.filter((g) => g.id !== groupId)
         }))
     }),
     {

@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Plus, Trash2, DollarSign, Building2, Users, Edit2, Search, Database, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, DollarSign, Building2, Users, Edit2, Search, Database, RefreshCw, FolderKanban } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input, Label } from '../components/ui/Input';
 import { useSettings } from '../data/settingsStore';
 import { PersonTeamModal } from '../components/PersonTeamModal';
 import { VendorModal } from '../components/VendorModal';
+import { GroupModal } from '../components/GroupModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { seedDatabase, clearDatabase } from '../utils/seedData';
 
@@ -13,13 +14,17 @@ export function SettingsPage() {
     currency,
     vendors,
     people,
+    groups,
     setCurrency,
     addFullPerson,
     editPerson,
     removePerson,
     addFullVendor,
     editVendor,
-    removeVendor
+    removeVendor,
+    addGroup,
+    editGroup,
+    removeGroup
   } = useSettings();
 
   // People modal state
@@ -31,6 +36,11 @@ export function SettingsPage() {
   const [vendorModalOpen, setVendorModalOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
   const [vendorSearch, setVendorSearch] = useState('');
+
+  // Group modal state
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [groupSearch, setGroupSearch] = useState('');
 
   // Delete confirmation state
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, type: null, id: null, name: '' });
@@ -65,6 +75,17 @@ export function SettingsPage() {
       (v.contactEmail && v.contactEmail.toLowerCase().includes(search))
     );
   }, [vendors, vendorSearch]);
+
+  // Filtered groups
+  const filteredGroups = useMemo(() => {
+    if (!groupSearch.trim()) return groups;
+    const search = groupSearch.toLowerCase();
+    return groups.filter(g =>
+      g.name.toLowerCase().includes(search) ||
+      (g.type && g.type.toLowerCase().includes(search)) ||
+      (g.owner && g.owner.toLowerCase().includes(search))
+    );
+  }, [groups, groupSearch]);
 
   // Person handlers
   const handleAddPerson = () => {
@@ -122,12 +143,42 @@ export function SettingsPage() {
     });
   };
 
+  // Group handlers
+  const handleAddGroup = () => {
+    setEditingGroup(null);
+    setGroupModalOpen(true);
+  };
+
+  const handleEditGroup = (group) => {
+    setEditingGroup(group);
+    setGroupModalOpen(true);
+  };
+
+  const handleSaveGroup = (groupData) => {
+    if (editingGroup) {
+      editGroup(editingGroup.id, groupData);
+    } else {
+      addGroup(groupData);
+    }
+  };
+
+  const handleDeleteGroup = (group) => {
+    setDeleteConfirm({
+      open: true,
+      type: 'group',
+      id: group.id,
+      name: group.name
+    });
+  };
+
   // Confirm delete
   const handleConfirmDelete = () => {
     if (deleteConfirm.type === 'person') {
       removePerson(deleteConfirm.id);
     } else if (deleteConfirm.type === 'vendor') {
       removeVendor(deleteConfirm.id);
+    } else if (deleteConfirm.type === 'group') {
+      removeGroup(deleteConfirm.id);
     }
   };
 
@@ -433,6 +484,149 @@ export function SettingsPage() {
           )}
         </div>
 
+        {/* Group Management */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <FolderKanban className="text-indigo-600" size={24} />
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Project Groups</h2>
+                <p className="text-sm text-gray-600">
+                  Categorize solutions and projects into groups
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="primary"
+              onClick={handleAddGroup}
+              className="flex items-center gap-2"
+            >
+              <Plus size={16} />
+              Add Project Group
+            </Button>
+          </div>
+
+          {/* Search */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                value={groupSearch}
+                onChange={(e) => setGroupSearch(e.target.value)}
+                placeholder="Search by name, type, or owner..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Group Table */}
+          {groups.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
+              <FolderKanban className="mx-auto mb-3 text-gray-400" size={48} />
+              <p className="mb-2 font-medium">No project groups added yet</p>
+              <p className="text-sm mb-4">Add your first project group to get started</p>
+              <Button variant="secondary" onClick={handleAddGroup}>
+                <Plus size={16} className="inline mr-2" />
+                Add Project Group
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Owner
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredGroups.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                          No groups match your search
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredGroups.map((group) => (
+                        <tr key={group.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="font-medium text-gray-900">{group.name}</div>
+                            {group.description && (
+                              <div className="text-sm text-gray-500">{group.description}</div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              group.type === 'IT' ? 'bg-blue-100 text-blue-800' :
+                              group.type === 'Process' ? 'bg-purple-100 text-purple-800' :
+                              group.type === 'People' ? 'bg-green-100 text-green-800' :
+                              group.type === 'Infrastructure' ? 'bg-orange-100 text-orange-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {group.type}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              group.status === 'Active' ? 'bg-green-100 text-green-800' :
+                              group.status === 'Planning' ? 'bg-yellow-100 text-yellow-800' :
+                              group.status === 'On Hold' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {group.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {group.owner || '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditGroup(group)}
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              >
+                                <Edit2 size={16} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteGroup(group)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 text-sm text-gray-600">
+                Showing {filteredGroups.length} of {groups.length} {groups.length === 1 ? 'group' : 'groups'}
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Developer Tools */}
         <div className="bg-gradient-to-br from-orange-50 to-white rounded-lg border-2 border-orange-200 p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -458,6 +652,7 @@ export function SettingsPage() {
                 <ul className="text-sm text-gray-600 mb-4 space-y-1 ml-4">
                   <li>• 3 people (with full details)</li>
                   <li>• 3 vendors (with full details)</li>
+                  <li>• 3 project groups (with full details)</li>
                   <li>• 3 transformation plannings</li>
                   <li>• Multiple solutions & roadmap items</li>
                 </ul>
@@ -482,6 +677,7 @@ export function SettingsPage() {
                 <ul className="text-sm text-gray-600 mb-4 space-y-1 ml-4">
                   <li>• All people & teams</li>
                   <li>• All vendors</li>
+                  <li>• All project groups</li>
                   <li>• All transformation plannings</li>
                   <li>• All solutions & roadmap items</li>
                 </ul>
@@ -519,6 +715,14 @@ export function SettingsPage() {
         onClose={() => setVendorModalOpen(false)}
         onSave={handleSaveVendor}
         vendor={editingVendor}
+      />
+
+      <GroupModal
+        open={groupModalOpen}
+        onClose={() => setGroupModalOpen(false)}
+        onSave={handleSaveGroup}
+        group={editingGroup}
+        people={people}
       />
 
       <ConfirmDialog

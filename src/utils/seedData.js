@@ -1,5 +1,5 @@
 // Seed data for development and testing
-export function seedPeopleAndVendors() {
+export function seedPeopleVendorsAndGroups() {
   const people = [
     {
       id: Date.now() + 1,
@@ -48,7 +48,34 @@ export function seedPeopleAndVendors() {
     }
   ];
 
-  return { people, vendors };
+  const groups = [
+    {
+      id: Date.now() + 7,
+      name: 'Digital Transformation',
+      description: 'Strategic initiatives to digitalize customer-facing processes and improve digital capabilities',
+      type: 'IT',
+      status: 'Active',
+      owner: 'Digital Transformation Team'
+    },
+    {
+      id: Date.now() + 8,
+      name: 'ERP Transformation',
+      description: 'Modernization of core financial and operational systems',
+      type: 'Business',
+      status: 'Planning',
+      owner: 'Michael Chen'
+    },
+    {
+      id: Date.now() + 9,
+      name: 'Operations Excellence',
+      description: 'Continuous improvement initiatives for operational efficiency',
+      type: 'Process',
+      status: 'Active',
+      owner: 'Sarah Johnson'
+    }
+  ];
+
+  return { people, vendors, groups };
 }
 
 export function seedTransformationPlannings() {
@@ -377,13 +404,14 @@ export function seedTransformationPlannings() {
 // Function to populate localStorage with seed data
 export function seedDatabase() {
   try {
-    // Seed people and vendors in settings
-    const { people, vendors } = seedPeopleAndVendors();
+    // Seed people, vendors, and groups in settings
+    const { people, vendors, groups } = seedPeopleVendorsAndGroups();
     const settingsData = {
       state: {
         currency: 'DKK',
         vendors,
-        people
+        people,
+        groups
       },
       version: 0
     };
@@ -396,12 +424,13 @@ export function seedDatabase() {
     console.log('✅ Database seeded successfully!');
     console.log(`   - ${people.length} people added`);
     console.log(`   - ${vendors.length} vendors added`);
+    console.log(`   - ${groups.length} project groups added`);
     console.log(`   - ${plannings.length} transformation plannings added`);
 
     return {
       success: true,
       message: 'Database seeded successfully',
-      data: { people, vendors, plannings }
+      data: { people, vendors, groups, plannings }
     };
   } catch (error) {
     console.error('❌ Failed to seed database:', error);

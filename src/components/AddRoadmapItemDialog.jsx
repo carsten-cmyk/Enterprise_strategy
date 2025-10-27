@@ -31,6 +31,9 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
   const [linkedCapabilities, setLinkedCapabilities] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [expectedStart, setExpectedStart] = useState('');
+  const [estimatedDuration, setEstimatedDuration] = useState('');
+  const [durationUnit, setDurationUnit] = useState('weeks');
   const [owner, setOwner] = useState('');
   const [status, setStatus] = useState('planning');
 
@@ -41,6 +44,9 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
     setLinkedCapabilities([]);
     setStartDate('');
     setEndDate('');
+    setExpectedStart('');
+    setEstimatedDuration('');
+    setDurationUnit('weeks');
     setOwner('');
     setStatus('planning');
     onClose();
@@ -55,6 +61,9 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
       linkedCapabilities,
       startDate,
       endDate,
+      expectedStart,
+      estimatedDuration,
+      durationUnit,
       owner: owner.trim(),
       status
     });
@@ -99,23 +108,46 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Start Date</Label>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 uppercase mb-4">Planning & Timeline</h3>
+
+            <div className="mb-4">
+              <Label>Expected Start</Label>
               <Input
                 type="date"
-                value={startDate}
-                onChange={setStartDate}
+                value={expectedStart}
+                onChange={setExpectedStart}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                When do you expect to start this roadmap item?
+              </p>
             </div>
 
-            <div>
-              <Label>End Date</Label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={setEndDate}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Estimated Duration</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={estimatedDuration}
+                  onChange={setEstimatedDuration}
+                  placeholder="e.g. 8"
+                />
+              </div>
+
+              <div>
+                <Label>Duration Unit</Label>
+                <select
+                  value={durationUnit}
+                  onChange={(e) => setDurationUnit(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                >
+                  <option value="hours">Hours</option>
+                  <option value="days">Days</option>
+                  <option value="weeks">Weeks</option>
+                  <option value="months">Months</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -160,8 +192,8 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
 
           {capabilities.length > 0 && (
             <div>
-              <Label>Linked Level 0 Capabilities</Label>
-              <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
+              <Label>Linked Capabilities (Components)</Label>
+              <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3">
                 {capabilities.map(cap => (
                   <label
                     key={cap.id}
@@ -173,7 +205,12 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
                       onChange={() => handleCapabilityToggle(cap.id)}
                       className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">{cap.name}</span>
+                    <div>
+                      <div className="text-sm font-medium text-gray-700">{cap.displayName || cap.name}</div>
+                      {cap.description && (
+                        <div className="text-xs text-gray-500">{cap.description}</div>
+                      )}
+                    </div>
                   </label>
                 ))}
               </div>

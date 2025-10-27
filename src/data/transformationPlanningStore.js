@@ -151,7 +151,7 @@ export function useTransformationPlanning() {
                 id: Date.now().toString(),
                 name: component.name,
                 description: component.description || '',
-                support: component.support || 'leverage',
+                support: component.support || 'primary',
                 priority: component.priority || 'medium',
                 currentState: component.currentState || '',
                 desiredCapability: component.desiredCapability || '',
@@ -165,7 +165,8 @@ export function useTransformationPlanning() {
                 businessProcess: component.businessProcess || '',
                 vendor: component.vendor || '',
                 technologyStack: component.technologyStack || '',
-                integrationPoints: component.integrationPoints || ''
+                integrationPoints: component.integrationPoints || '',
+                subcomponents: [] // Support for nested components
               };
               return {
                 ...col,
@@ -331,6 +332,136 @@ export function useTransformationPlanning() {
     }));
   };
 
+  // Subcomponent operations - Recursive helper to find and update component at any level
+  const findAndUpdateComponent = (components, componentPath, updateFn) => {
+    if (componentPath.length === 0) return components;
+
+    const [currentId, ...restPath] = componentPath;
+
+    return components.map(comp => {
+      if (comp.id === currentId) {
+        if (restPath.length === 0) {
+          // This is the target component
+          return updateFn(comp);
+        } else {
+          // Continue searching in subcomponents
+          return {
+            ...comp,
+            subcomponents: findAndUpdateComponent(comp.subcomponents || [], restPath, updateFn)
+          };
+        }
+      }
+      return comp;
+    });
+  };
+
+  const addSubcomponent = (planningId, columnId, componentPath, subcomponent) => {
+    setPlannings(plannings.map(p => {
+      if (p.id === planningId) {
+        return {
+          ...p,
+          level0Columns: p.level0Columns.map(col => {
+            if (col.id === columnId) {
+              const newSubcomponent = {
+                id: Date.now().toString(),
+                name: subcomponent.name,
+                description: subcomponent.description || '',
+                support: subcomponent.support || 'primary',
+                priority: subcomponent.priority || 'medium',
+                currentState: subcomponent.currentState || '',
+                desiredCapability: subcomponent.desiredCapability || '',
+                businessImpact: subcomponent.businessImpact || '',
+                investmentEstimate: subcomponent.investmentEstimate || '',
+                timeline: subcomponent.timeline || '',
+                dependencies: subcomponent.dependencies || '',
+                lifecycleStatus: subcomponent.lifecycleStatus || '',
+                businessOwner: subcomponent.businessOwner || '',
+                technicalOwner: subcomponent.technicalOwner || '',
+                businessProcess: subcomponent.businessProcess || '',
+                vendor: subcomponent.vendor || '',
+                technologyStack: subcomponent.technologyStack || '',
+                integrationPoints: subcomponent.integrationPoints || '',
+                subcomponents: []
+              };
+
+              return {
+                ...col,
+                components: findAndUpdateComponent(col.components, componentPath, (comp) => ({
+                  ...comp,
+                  subcomponents: [...(comp.subcomponents || []), newSubcomponent]
+                }))
+              };
+            }
+            return col;
+          }),
+          lastModified: new Date().toISOString()
+        };
+      }
+      return p;
+    }));
+  };
+
+  const updateSubcomponent = (planningId, columnId, componentPath, updates) => {
+    setPlannings(plannings.map(p => {
+      if (p.id === planningId) {
+        return {
+          ...p,
+          level0Columns: p.level0Columns.map(col => {
+            if (col.id === columnId) {
+              return {
+                ...col,
+                components: findAndUpdateComponent(col.components, componentPath, (comp) => ({
+                  ...comp,
+                  ...updates
+                }))
+              };
+            }
+            return col;
+          }),
+          lastModified: new Date().toISOString()
+        };
+      }
+      return p;
+    }));
+  };
+
+  const deleteSubcomponent = (planningId, columnId, componentPath) => {
+    setPlannings(plannings.map(p => {
+      if (p.id === planningId) {
+        return {
+          ...p,
+          level0Columns: p.level0Columns.map(col => {
+            if (col.id === columnId) {
+              // For delete, we need to remove from parent's subcomponents array
+              const parentPath = componentPath.slice(0, -1);
+              const targetId = componentPath[componentPath.length - 1];
+
+              if (parentPath.length === 0) {
+                // Delete from root level
+                return {
+                  ...col,
+                  components: col.components.filter(comp => comp.id !== targetId)
+                };
+              } else {
+                // Delete from nested level
+                return {
+                  ...col,
+                  components: findAndUpdateComponent(col.components, parentPath, (comp) => ({
+                    ...comp,
+                    subcomponents: (comp.subcomponents || []).filter(sub => sub.id !== targetId)
+                  }))
+                };
+              }
+            }
+            return col;
+          }),
+          lastModified: new Date().toISOString()
+        };
+      }
+      return p;
+    }));
+  };
+
   return {
     plannings,
     createPlanning,
@@ -344,6 +475,9 @@ export function useTransformationPlanning() {
     addComponent,
     updateComponent,
     deleteComponent,
+    addSubcomponent,
+    updateSubcomponent,
+    deleteSubcomponent,
     addRoadmapItem,
     updateRoadmapItem,
     deleteRoadmapItem,

@@ -8,20 +8,15 @@ import { useTransformationPlanning } from '../data/transformationPlanningStore';
 
 // Maturity Indicator component (same as TransformationPlanningCard)
 function MaturityIndicator({ level, isActive }) {
-  const colors = {
-    1: 'bg-red-400',
-    2: 'bg-orange-400',
-    3: 'bg-yellow-400',
-    4: 'bg-green-400',
-    5: 'bg-green-500'
+  const getColor = () => {
+    if (!isActive) return 'bg-gray-200';
+    if (level <= 2) return 'bg-rose-600';
+    if (level === 3) return 'bg-amber-500';
+    return 'bg-emerald-600';
   };
 
   return (
-    <div
-      className={`w-3 h-3 rounded ${
-        isActive ? colors[level] : 'bg-gray-200'
-      }`}
-    />
+    <div className={`w-3 h-3 rounded ${getColor()}`} />
   );
 }
 

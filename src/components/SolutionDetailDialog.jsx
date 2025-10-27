@@ -14,7 +14,7 @@ import { useSettings } from '../data/settingsStore';
 const TABS = [
   { id: 'basic', label: 'Basic Info' },
   { id: 'assessment', label: 'Assessment' },
-  { id: 'planning', label: 'Planning' },
+  { id: 'planning', label: 'Time & Schedule' },
   { id: 'ownership', label: 'Ownership' },
   { id: 'budget', label: 'Budget' },
   { id: 'actions', label: 'Action Plan' },
@@ -30,7 +30,7 @@ const SUPPORT_OPTIONS = [
 ];
 
 export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapItems = [], plannings = [], currentPlanningId = null }) {
-  const { people, vendors, addPerson, addVendor } = useSettings();
+  const { people, vendors, groups, addPerson, addVendor } = useSettings();
   const [activeTab, setActiveTab] = useState('basic');
   const [showAddPersonDialog, setShowAddPersonDialog] = useState(false);
   const [showAddVendorDialog, setShowAddVendorDialog] = useState(false);
@@ -40,6 +40,7 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    group: '',
     currentState: '',
     desiredState: '',
     scope: 'not-touched',
@@ -50,9 +51,9 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
     investmentEstimate: '',
 
     // Planning
-    startDate: '',
-    endDate: '',
     expectedStart: '',
+    estimatedDuration: '',
+    durationUnit: 'weeks',
     dependencies: [],
 
     // Ownership
@@ -84,6 +85,7 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
       setFormData({
         name: solution.name || '',
         description: solution.description || '',
+        group: solution.group || '',
         currentState: solution.currentState || '',
         desiredState: solution.desiredState || '',
         scope: solution.scope || 'not-touched',
@@ -92,9 +94,9 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
         businessImpact: solution.businessImpact || '',
         investmentEstimate: solution.investmentEstimate || '',
 
-        startDate: solution.startDate || '',
-        endDate: solution.endDate || '',
         expectedStart: solution.expectedStart || solution.expectedGoLive || '',
+        estimatedDuration: solution.estimatedDuration || '',
+        durationUnit: solution.durationUnit || 'weeks',
         dependencies: Array.isArray(solution.dependencies) ? solution.dependencies : [],
 
         businessOwner: solution.businessOwner || '',
@@ -274,6 +276,23 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
               </div>
 
               <div>
+                <Label>Project Group</Label>
+                <select
+                  value={formData.group}
+                  onChange={(e) => updateField('group', e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Select project group...</option>
+                  {groups.map(group => (
+                    <option key={group.id} value={group.name}>{group.name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Manage project groups in Settings
+                </p>
+              </div>
+
+              <div>
                 <Label>Description</Label>
                 <Textarea
                   value={formData.description}
@@ -414,26 +433,6 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700 uppercase">Planning & Timeline</h3>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Start Date</Label>
-                  <Input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(value) => updateField('startDate', value)}
-                  />
-                </div>
-
-                <div>
-                  <Label>End Date</Label>
-                  <Input
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(value) => updateField('endDate', value)}
-                  />
-                </div>
-              </div>
-
               <div>
                 <Label>Expected Start</Label>
                 <Input
@@ -441,20 +440,50 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
                   value={formData.expectedStart}
                   onChange={(value) => updateField('expectedStart', value)}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  When do you expect to start this project?
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Estimated Duration</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={formData.estimatedDuration || ''}
+                    onChange={(value) => updateField('estimatedDuration', value)}
+                    placeholder="e.g. 8"
+                  />
+                </div>
+
+                <div>
+                  <Label>Duration Unit</Label>
+                  <select
+                    value={formData.durationUnit || 'weeks'}
+                    onChange={(e) => updateField('durationUnit', e.target.value)}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="hours">Hours</option>
+                    <option value="days">Days</option>
+                    <option value="weeks">Weeks</option>
+                    <option value="months">Months</option>
+                  </select>
+                </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <Label>Dependencies (Solutions & Projects)</Label>
-                  {availableSolutions.length > 0 && (
+                  <Label>Dependencies</Label>
+                  {(availableSolutions.length > 0 || roadmapItems.length > 0) && (
                     <span className="text-xs text-gray-500">
                       {formData.dependencies.length} selected
                     </span>
                   )}
                 </div>
 
-                {availableSolutions.length === 0 ? (
-                  <p className="text-sm text-gray-500 italic">No other solutions available to link as dependencies</p>
+                {availableSolutions.length === 0 && roadmapItems.length === 0 ? (
+                  <p className="text-sm text-gray-500 italic">No solutions or roadmap items available to link as dependencies</p>
                 ) : (
                   <>
                     <div className="mb-3">
@@ -468,47 +497,102 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
                         }}
                         className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
-                        <option value="">Select a solution to add as dependency...</option>
-                        {availableSolutions
-                          .filter(sol => !formData.dependencies.includes(sol.id))
-                          .map(sol => (
-                            <option key={sol.id} value={sol.id}>
-                              {sol.name} ({sol.planningName})
-                            </option>
-                          ))
-                        }
+                        <option value="">Select a dependency...</option>
+
+                        {/* Solutions & Projects */}
+                        {availableSolutions.length > 0 && (
+                          <optgroup label="Solutions & Projects">
+                            {availableSolutions
+                              .filter(sol => !formData.dependencies.includes(sol.id))
+                              .map(sol => (
+                                <option key={sol.id} value={sol.id}>
+                                  {sol.name} ({sol.planningName})
+                                </option>
+                              ))
+                            }
+                          </optgroup>
+                        )}
+
+                        {/* Roadmap Items */}
+                        {roadmapItems.length > 0 && (
+                          <optgroup label="Roadmap Items">
+                            {roadmapItems
+                              .filter(item => !formData.dependencies.includes(item.id))
+                              .map(item => (
+                                <option key={item.id} value={item.id}>
+                                  {item.name}
+                                </option>
+                              ))
+                            }
+                          </optgroup>
+                        )}
                       </select>
                     </div>
 
                     {formData.dependencies.length > 0 && (
                       <div className="space-y-2">
                         {formData.dependencies.map(depId => {
+                          // Check if it's a solution
                           const depSolution = availableSolutions.find(s => s.id === depId);
-                          if (!depSolution) return null;
-
-                          return (
-                            <div
-                              key={depId}
-                              className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
-                            >
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">
-                                  {depSolution.name}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {depSolution.planningName}
-                                </div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeDependency(depId)}
-                                className="text-gray-400 hover:text-red-600"
+                          if (depSolution) {
+                            return (
+                              <div
+                                key={depId}
+                                className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
                               >
-                                <Trash2 size={16} />
-                              </Button>
-                            </div>
-                          );
+                                <div>
+                                  <div className="text-xs font-medium text-blue-600 mb-1">Solution/Project</div>
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {depSolution.name}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {depSolution.planningName}
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeDependency(depId)}
+                                  className="text-gray-400 hover:text-red-600"
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              </div>
+                            );
+                          }
+
+                          // Check if it's a roadmap item
+                          const depRoadmapItem = roadmapItems.find(r => r.id === depId);
+                          if (depRoadmapItem) {
+                            return (
+                              <div
+                                key={depId}
+                                className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
+                              >
+                                <div>
+                                  <div className="text-xs font-medium text-purple-600 mb-1">Roadmap Item</div>
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {depRoadmapItem.name}
+                                  </div>
+                                  {depRoadmapItem.description && (
+                                    <div className="text-xs text-gray-500">
+                                      {depRoadmapItem.description}
+                                    </div>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeDependency(depId)}
+                                  className="text-gray-400 hover:text-red-600"
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              </div>
+                            );
+                          }
+
+                          return null;
                         })}
                       </div>
                     )}

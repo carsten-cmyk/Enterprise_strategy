@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Edit, Calendar, User, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Edit, Calendar, User, FileText, ChevronDown, ChevronRight, Download } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { AddLevel0ColumnDialog } from '../components/AddLevel0ColumnDialog';
 import { AddComponentDialog } from '../components/AddComponentDialog';
@@ -28,9 +28,11 @@ export function TransformationPlanningDetailPage() {
   const [showCapabilityReportDialog, setShowCapabilityReportDialog] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState(null);
   const [selectedComponent, setSelectedComponent] = useState(null);
+  const [selectedComponentPath, setSelectedComponentPath] = useState([]);
   const [selectedRoadmapItem, setSelectedRoadmapItem] = useState(null);
   const [selectedSolution, setSelectedSolution] = useState(null);
   const [selectedCapabilityForReport, setSelectedCapabilityForReport] = useState(null);
+  const [expandedComponents, setExpandedComponents] = useState({}); // Track which components are expanded
 
   const {
     getPlanning,
@@ -40,6 +42,9 @@ export function TransformationPlanningDetailPage() {
     addComponent,
     deleteComponent,
     updateComponent,
+    addSubcomponent,
+    deleteSubcomponent,
+    updateSubcomponent,
     updateBusinessGoal,
     addRoadmapItem,
     updateRoadmapItem,
@@ -50,6 +55,329 @@ export function TransformationPlanningDetailPage() {
   } = useTransformationPlanning();
 
   const planning = getPlanning(id);
+
+  // Helper function to collect all components from all level0 columns (including nested subcomponents)
+  const getAllComponents = () => {
+    if (!planning || !planning.level0Columns) return [];
+
+    const collectComponentsRecursively = (component, columnName) => {
+      const result = [{
+        ...component,
+        columnName,
+        displayName: `${columnName} > ${component.name}`
+      }];
+
+      if (component.subcomponents && component.subcomponents.length > 0) {
+        component.subcomponents.forEach(subcomp => {
+          result.push(...collectComponentsRecursively(subcomp, columnName));
+        });
+      }
+
+      return result;
+    };
+
+    const allComponents = [];
+    planning.level0Columns.forEach(column => {
+      if (column.components && column.components.length > 0) {
+        column.components.forEach(comp => {
+          allComponents.push(...collectComponentsRecursively(comp, column.name));
+        });
+      }
+    });
+
+    return allComponents;
+  };
+
+  // Helper function to toggle component expansion
+  const toggleComponentExpansion = (componentId) => {
+    setExpandedComponents(prev => ({
+      ...prev,
+      [componentId]: !prev[componentId]
+    }));
+  };
+
+  // Download structured text report
+  const downloadTextReport = () => {
+    if (!planning) return;
+
+    const strategyLabels = {
+      'primary': 'Primary',
+      'secondary': 'Secondary',
+      'not-touched': 'Not Touched',
+      'leverage': 'Maintain',
+      'enhance': 'Uplift',
+      'transform': 'Transform',
+      'build': 'New build'
+    };
+
+    const priorityLabels = {
+      'high': 'High',
+      'medium': 'Medium',
+      'low': 'Low'
+    };
+
+    // Recursive function to format components and subcomponents
+    const formatComponent = (component, indent = '    ') => {
+      let text = '';
+      text += `${indent}Component Name: ${component.name || 'N/A'}\n`;
+      text += `${indent}Description: ${component.description || 'N/A'}\n`;
+      text += `${indent}Strategy: ${strategyLabels[component.support || component.scope] || 'N/A'}\n`;
+      text += `${indent}Priority: ${priorityLabels[component.priority] || 'N/A'}\n`;
+      text += `${indent}Assessment Current State (As-Is): ${component.currentState || 'N/A'}\n`;
+      text += `${indent}Desired Capability (To-Be): ${component.desiredState || 'N/A'}\n`;
+
+      // Gap Analysis
+      if (component.gaps && component.gaps.length > 0) {
+        text += `${indent}Gap Analysis:\n`;
+        component.gaps.forEach((gap, idx) => {
+          text += `${indent}  ${idx + 1}. ${gap.description || 'N/A'}\n`;
+        });
+      } else {
+        text += `${indent}Gap Analysis: N/A\n`;
+      }
+
+      text += `${indent}Business Impact: ${component.businessImpact || 'N/A'}\n`;
+
+      // Subcomponents
+      if (component.subcomponents && component.subcomponents.length > 0) {
+        text += `${indent}Subcomponents:\n`;
+        component.subcomponents.forEach((subcomp, idx) => {
+          text += `${indent}  ${idx + 1}.\n`;
+          text += formatComponent(subcomp, indent + '    ');
+        });
+      }
+
+      return text;
+    };
+
+    let content = '';
+
+    // Header
+    content += '=====================================\n';
+    content += `TRANSFORMATION PLANNING REPORT\n`;
+    content += `${planning.name}\n`;
+    content += '=====================================\n\n';
+
+    // Business Goal
+    content += '1. BUSINESS GOAL\n';
+    content += '-----------------------------------\n';
+    content += `${planning.businessGoal || 'No business goal defined'}\n\n`;
+
+    // Current State
+    content += '2. CURRENT STATE\n';
+    content += '-----------------------------------\n';
+    content += `${planning.currentState || 'No current state defined'}\n\n`;
+
+    // Desired State
+    content += '3. DESIRED STATE\n';
+    content += '-----------------------------------\n';
+    content += `${planning.desiredState || 'No desired state defined'}\n\n`;
+
+    // Process Deep Dive 2
+    content += '4. PROCESS DEEP DIVE 2\n';
+    content += '-----------------------------------\n\n';
+
+    if (planning.level0Columns && planning.level0Columns.length > 0) {
+      planning.level0Columns.forEach((column, colIdx) => {
+        content += `${colIdx + 1}. Level 0 Capability: ${column.name}\n`;
+        content += `   Description: ${column.description || 'N/A'}\n\n`;
+
+        if (column.components && column.components.length > 0) {
+          content += `   Components:\n\n`;
+          column.components.forEach((component, compIdx) => {
+            content += `   ${compIdx + 1}.\n`;
+            content += formatComponent(component);
+            content += '\n';
+          });
+        } else {
+          content += `   No components\n\n`;
+        }
+      });
+    } else {
+      content += 'No Level 0 capabilities defined\n';
+    }
+
+    // Create and download file
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${planning.name.replace(/[^a-z0-9]/gi, '_')}_report.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Recursive Component Renderer
+  const ComponentCard = ({ component, column, path = [], level = 0 }) => {
+    const support = component.support || component.scope || 'leverage';
+    const priority = component.priority || 'medium';
+    const hasSubcomponents = component.subcomponents && component.subcomponents.length > 0;
+    const isExpanded = expandedComponents[component.id];
+    const currentPath = [...path, component.id];
+
+    // Map support to colors
+    const getSupportColor = () => {
+      switch(support) {
+        case 'primary': return { bg: 'bg-teal-600', border: 'border-teal-700', text: 'text-white', textLight: 'text-teal-50' };
+        case 'secondary': return { bg: 'bg-teal-100', border: 'border-teal-200', text: 'text-teal-900', textLight: 'text-teal-800' };
+        case 'not-touched': return { bg: 'bg-gray-200', border: 'border-gray-300', text: 'text-gray-700', textLight: 'text-gray-600' };
+        // Legacy support for old values
+        case 'leverage': return { bg: 'bg-teal-600', border: 'border-teal-700', text: 'text-white', textLight: 'text-teal-50' };
+        case 'enhance': return { bg: 'bg-teal-100', border: 'border-teal-200', text: 'text-teal-900', textLight: 'text-teal-800' };
+        case 'transform': return { bg: 'bg-teal-100', border: 'border-teal-200', text: 'text-teal-900', textLight: 'text-teal-800' };
+        case 'build': return { bg: 'bg-teal-600', border: 'border-teal-700', text: 'text-white', textLight: 'text-teal-50' };
+        default: return { bg: 'bg-teal-600', border: 'border-teal-700', text: 'text-white', textLight: 'text-teal-50' };
+      }
+    };
+
+    const colors = getSupportColor();
+
+    return (
+      <div className="space-y-2">
+        <div
+          className={`rounded p-2 text-xs border hover:shadow-sm transition-all ${colors.bg} ${colors.border}`}
+          style={{ marginLeft: `${level * 12}px` }}
+        >
+          {/* Header with expand/collapse and title */}
+          <div className="flex items-start gap-2 mb-2">
+            {/* Expand/Collapse button */}
+            {hasSubcomponents ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleComponentExpansion(component.id);
+                }}
+                className={`flex-shrink-0 mt-0.5 ${colors.text} hover:opacity-80`}
+              >
+                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              </button>
+            ) : (
+              <div className="w-3.5 flex-shrink-0" />
+            )}
+
+            {/* Component title */}
+            <div
+              className="flex-1 min-w-0 cursor-pointer"
+              onClick={() => {
+                setSelectedColumn(column);
+                setSelectedComponent(component);
+                setSelectedComponentPath(currentPath);
+                setShowComponentDetailDialog(true);
+              }}
+            >
+              <div className={`font-medium ${colors.text}`}>
+                {component.name}
+              </div>
+            </div>
+          </div>
+
+          {/* Component content */}
+          <div
+            className="cursor-pointer"
+            onClick={() => {
+              setSelectedColumn(column);
+              setSelectedComponent(component);
+              setSelectedComponentPath(currentPath);
+              setShowComponentDetailDialog(true);
+            }}
+          >
+            {component.description && (
+              <div className={`mb-2 line-clamp-2 text-xs ${colors.textLight}`}>
+                {component.description}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap gap-2 items-center">
+                {priority && (
+                  <span className="inline-block px-1.5 py-0.5 rounded text-xs font-medium bg-white bg-opacity-90 text-gray-900">
+                    {priority === 'high' ? 'High' : priority === 'medium' ? 'Medium' : 'Low'}
+                  </span>
+                )}
+                {hasSubcomponents && (
+                  <span className={`text-xs ${colors.textLight}`}>
+                    {component.subcomponents.length} subcomponent{component.subcomponents.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {level < 2 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedColumn(column);
+                      setSelectedComponent(component);
+                      setSelectedComponentPath(currentPath);
+                      setShowAddComponentDialog(true);
+                    }}
+                    className={`${colors.textLight} hover:text-white`}
+                    title="Add subcomponent"
+                  >
+                    <Plus size={14} />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`Er du sikker på at du vil slette "${component.name}"?`)) {
+                      if (path.length === 0) {
+                        deleteComponent(id, column.id, component.id);
+                      } else {
+                        deleteSubcomponent(id, column.id, currentPath);
+                      }
+                    }
+                  }}
+                  className={`${colors.textLight} hover:text-white`}
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Add subcomponent button - shown when expanded and level < 3 */}
+          {isExpanded && level < 2 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedColumn(column);
+                setSelectedComponent(component);
+                setSelectedComponentPath(currentPath);
+                setShowAddComponentDialog(true);
+              }}
+              className={`mt-2 w-full text-xs py-1 px-2 rounded border border-dashed ${colors.textLight} hover:text-white hover:bg-white hover:bg-opacity-10 transition-colors flex items-center justify-center gap-1`}
+            >
+              <Plus size={12} />
+              Add subcomponent
+            </button>
+          )}
+        </div>
+
+        {/* Render subcomponents recursively */}
+        {isExpanded && hasSubcomponents && (
+          <div className="space-y-2">
+            {component.subcomponents.map(subComp => (
+              <ComponentCard
+                key={subComp.id}
+                component={subComp}
+                column={column}
+                path={currentPath}
+                level={level + 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (!planning) {
     return (
@@ -80,12 +408,20 @@ export function TransformationPlanningDetailPage() {
 
   const handleAddComponentClick = (column) => {
     setSelectedColumn(column);
+    setSelectedComponent(null);
+    setSelectedComponentPath([]);
     setShowAddComponentDialog(true);
   };
 
   const handleAddComponent = (component) => {
     if (selectedColumn) {
-      addComponent(id, selectedColumn.id, component);
+      if (selectedComponentPath.length === 0) {
+        // Adding a root-level component
+        addComponent(id, selectedColumn.id, component);
+      } else {
+        // Adding a subcomponent
+        addSubcomponent(id, selectedColumn.id, selectedComponentPath, component);
+      }
     }
   };
 
@@ -107,7 +443,13 @@ export function TransformationPlanningDetailPage() {
 
   const handleUpdateComponent = (updates) => {
     if (selectedColumn && selectedComponent) {
-      updateComponent(id, selectedColumn.id, selectedComponent.id, updates);
+      if (selectedComponentPath.length === 0 || selectedComponentPath.length === 1) {
+        // Root level component
+        updateComponent(id, selectedColumn.id, selectedComponent.id, updates);
+      } else {
+        // Nested subcomponent
+        updateSubcomponent(id, selectedColumn.id, selectedComponentPath, updates);
+      }
     }
   };
 
@@ -211,12 +553,12 @@ export function TransformationPlanningDetailPage() {
           <h2 className="text-sm font-semibold text-gray-600 uppercase mb-2">
             Current State
           </h2>
-          <p className="text-gray-800 whitespace-pre-wrap mb-4">
+          <p className="text-sm text-gray-700 whitespace-pre-wrap mb-4 leading-relaxed">
             {planning.businessGoal?.currentState || 'Ikke defineret'}
           </p>
 
           {/* Current Maturity Progress */}
-          <div className="pt-4 border-t">
+          <div className="pt-4 border-t border-gray-200">
             <div className="text-xs font-semibold text-gray-600 mb-2">
               Current Maturity
             </div>
@@ -242,12 +584,12 @@ export function TransformationPlanningDetailPage() {
           <h2 className="text-sm font-semibold text-gray-600 uppercase mb-2">
             Desired State
           </h2>
-          <p className="text-gray-800 whitespace-pre-wrap mb-4">
+          <p className="text-sm text-gray-700 whitespace-pre-wrap mb-4 leading-relaxed">
             {planning.businessGoal?.desiredState || 'Ikke defineret'}
           </p>
 
           {/* Desired Maturity Progress */}
-          <div className="pt-4 border-t">
+          <div className="pt-4 border-t border-gray-200">
             <div className="text-xs font-semibold text-gray-600 mb-2">
               Target Maturity
             </div>
@@ -274,18 +616,29 @@ export function TransformationPlanningDetailPage() {
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Process deep dive</h2>
+            <h2 className="text-xl font-bold text-gray-900">Process deep dive 2</h2>
             <p className="text-sm text-gray-600 mt-1">Processes affected by business goals</p>
           </div>
-          <Button
-            variant="primary"
-            onClick={() => setShowAddColumnDialog(true)}
-            className="flex items-center gap-2"
-            size="sm"
-          >
-            <Plus size={18} />
-            Add new
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={downloadTextReport}
+              className="flex items-center gap-2"
+              size="sm"
+            >
+              <Download size={18} />
+              Download
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => setShowAddColumnDialog(true)}
+              className="flex items-center gap-2"
+              size="sm"
+            >
+              <Plus size={18} />
+              Add new
+            </Button>
+          </div>
         </div>
 
         {planning.level0Columns?.length === 0 ? (
@@ -310,23 +663,29 @@ export function TransformationPlanningDetailPage() {
                 >
                   {/* Column Header */}
                   <div className="p-3 border-b border-gray-200 bg-white rounded-t-lg">
-                    <div className="flex items-start justify-between mb-1">
-                      <div className="flex-1 pr-2 min-w-0">
-                        <h3 className="font-semibold text-sm text-gray-900 truncate">
-                          {column.name}
-                        </h3>
-                        {column.description && (
-                          <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                            {column.description}
-                          </p>
-                        )}
-                      </div>
+                    {/* Title section */}
+                    <div className="mb-2">
+                      <h3 className="font-semibold text-sm text-gray-900">
+                        {column.name}
+                      </h3>
+                      {column.description && (
+                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                          {column.description}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Bottom section with component count and actions */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">
+                        {column.components?.length || 0} components
+                      </span>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleViewCapabilityReport(column)}
-                          className="text-gray-400 hover:text-blue-600 -mt-1"
+                          className="text-gray-400 hover:text-blue-600"
                           title="View Detail Report"
                         >
                           <FileText size={14} />
@@ -335,7 +694,7 @@ export function TransformationPlanningDetailPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEditColumnClick(column)}
-                          className="text-gray-400 hover:text-blue-600 -mt-1"
+                          className="text-gray-400 hover:text-blue-600"
                         >
                           <Edit size={14} />
                         </Button>
@@ -343,79 +702,26 @@ export function TransformationPlanningDetailPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDeleteColumn(column.id, column.name)}
-                          className="text-gray-400 hover:text-red-600 -mt-1 -mr-1"
+                          className="text-gray-400 hover:text-red-600"
                         >
                           <Trash2 size={14} />
                         </Button>
                       </div>
                     </div>
-                    <span className="text-xs text-gray-500">
-                      {column.components?.length || 0} components
-                    </span>
                   </div>
 
                   {/* Column Content - Components stacked vertically */}
                   <div className="p-3 space-y-2 min-h-[200px] max-h-[600px] overflow-y-auto">
                     {column.components?.length > 0 ? (
-                      column.components.map(comp => {
-                        const support = comp.support || comp.scope || 'leverage';
-                        const priority = comp.priority || 'medium';
-
-                        // Map support to colors
-                        const getSupportColor = () => {
-                          switch(support) {
-                            case 'leverage': return { bg: 'bg-emerald-600', border: 'border-emerald-700', text: 'text-white', textLight: 'text-emerald-50' };
-                            case 'enhance': return { bg: 'bg-amber-500', border: 'border-amber-600', text: 'text-white', textLight: 'text-amber-50' };
-                            case 'transform': return { bg: 'bg-rose-600', border: 'border-rose-700', text: 'text-white', textLight: 'text-rose-50' };
-                            case 'build': return { bg: 'bg-blue-600', border: 'border-blue-700', text: 'text-white', textLight: 'text-blue-50' };
-                            case 'not-touched': return { bg: 'bg-slate-100', border: 'border-slate-300', text: 'text-slate-700', textLight: 'text-slate-600' };
-                            default: return { bg: 'bg-emerald-600', border: 'border-emerald-700', text: 'text-white', textLight: 'text-emerald-50' };
-                          }
-                        };
-
-                        const colors = getSupportColor();
-
-                        return (
-                          <div
-                            key={comp.id}
-                            className={`rounded p-2 text-xs border cursor-pointer hover:shadow-sm transition-all ${colors.bg} ${colors.border}`}
-                            onClick={() => handleComponentClick(column, comp)}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1 min-w-0">
-                                <div className={`font-medium truncate ${colors.text}`}>
-                                  {comp.name}
-                                </div>
-                                {comp.description && (
-                                  <div className={`mt-1 line-clamp-2 text-xs ${colors.textLight}`}>
-                                    {comp.description}
-                                  </div>
-                                )}
-                                {priority && (
-                                  <div className="mt-2">
-                                    <span className="inline-block px-1.5 py-0.5 rounded text-xs font-medium bg-white bg-opacity-90 text-gray-900">
-                                      {priority === 'high' ? 'High' :
-                                       priority === 'medium' ? 'Medium' :
-                                       'Low'}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteComponent(column.id, comp.id, comp.name);
-                                }}
-                                className={`-mt-1 -mr-1 flex-shrink-0 ${colors.textLight} hover:text-white`}
-                              >
-                                <Trash2 size={14} />
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })
+                      column.components.map(comp => (
+                        <ComponentCard
+                          key={comp.id}
+                          component={comp}
+                          column={column}
+                          path={[]}
+                          level={0}
+                        />
+                      ))
                     ) : (
                       <div className="text-xs text-gray-500 italic text-center py-8">
                         No components
@@ -754,7 +1060,7 @@ export function TransformationPlanningDetailPage() {
         open={showAddRoadmapItemDialog}
         onClose={() => setShowAddRoadmapItemDialog(false)}
         onAdd={handleAddRoadmapItem}
-        capabilities={planning.level0Columns || []}
+        capabilities={getAllComponents()}
       />
 
       <RoadmapItemDetailDialog
@@ -765,7 +1071,7 @@ export function TransformationPlanningDetailPage() {
         }}
         onSave={handleUpdateRoadmapItem}
         roadmapItem={selectedRoadmapItem}
-        capabilities={planning.level0Columns || []}
+        capabilities={getAllComponents()}
       />
 
       <AddSolutionDialog
