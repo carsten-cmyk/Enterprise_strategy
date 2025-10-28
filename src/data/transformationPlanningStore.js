@@ -34,8 +34,11 @@ export function useTransformationPlanning() {
 
   const createPlanning = (name, currentState, desiredState, currentMaturity = 1, desiredMaturity = 3, description = '') => {
     const now = new Date().toISOString();
+    const planningId = Date.now().toString();
+    const programId = `prog-${planningId}`;
+
     const newPlanning = {
-      id: Date.now().toString(),
+      id: planningId,
       name,
       createdDate: now.split('T')[0], // YYYY-MM-DD
       lastModified: now,
@@ -47,8 +50,29 @@ export function useTransformationPlanning() {
         currentMaturity,
         desiredMaturity
       },
+      // Auto-created Program
+      programId,
+      program: {
+        id: programId,
+        planningId,
+        name: `${name} Program`,
+        executiveSummary: '',
+        strategicRationale: '',
+        businessCase: '',
+        successCriteria: '',
+        // Calculated metrics (will be updated from program items)
+        totalBudget: 0,
+        overallProgress: 0,
+        startDate: null,
+        endDate: null,
+        totalGaps: 0,
+        gapsAddressed: 0,
+        createdAt: now,
+        updatedAt: now
+      },
       level0Columns: [],
-      roadmapItems: [],
+      programItems: [],  // NEW - replaces roadmapItems
+      roadmapItems: [],  // Keep for backward compatibility during migration
       solutions: []
     };
     setPlannings([...plannings, newPlanning]);
@@ -332,6 +356,214 @@ export function useTransformationPlanning() {
     }));
   };
 
+  // Program operations
+  const updateProgram = (planningId, updates) => {
+    setPlannings(plannings.map(p => {
+      if (p.id === planningId) {
+        return {
+          ...p,
+          program: {
+            ...p.program,
+            ...updates,
+            updatedAt: new Date().toISOString()
+          },
+          lastModified: new Date().toISOString()
+        };
+      }
+      return p;
+    }));
+  };
+
+  // Program Item operations
+  const addProgramItem = (planningId, programItem) => {
+    setPlannings(plannings.map(p => {
+      if (p.id === planningId) {
+        const now = new Date().toISOString();
+        const newItem = {
+          id: `pi-${Date.now()}`,
+          planningId,
+          programId: p.programId,
+          name: programItem.name,
+          description: programItem.description || '',
+          progressStatus: programItem.progressStatus || 'not-started',
+          progress: programItem.progress || 0,
+
+          // Timeline
+          startDate: programItem.startDate || '',
+          estimatedDuration: programItem.estimatedDuration || '',
+          durationUnit: programItem.durationUnit || 'weeks',
+
+          // Budget
+          estimatedBudget: programItem.estimatedBudget || 0,
+          currency: programItem.currency || 'DKK',
+
+          // Links
+          linkedComponents: programItem.linkedComponents || [],
+
+          // Assessment (selective inheritance structure)
+          selectedAsIsComponents: programItem.selectedAsIsComponents || [],
+          asIsUserNotes: programItem.asIsUserNotes || '',
+          selectedToBeComponents: programItem.selectedToBeComponents || [],
+          toBeUserNotes: programItem.toBeUserNotes || '',
+          selectedBusinessImpactComponents: programItem.selectedBusinessImpactComponents || [],
+          businessImpactUserNotes: programItem.businessImpactUserNotes || '',
+
+          // Gaps
+          selectedGaps: programItem.selectedGaps || [],
+          customGaps: programItem.customGaps || [],
+
+          // Dependencies
+          dependsOn: programItem.dependsOn || [],
+
+          // Ownership
+          businessOwnerId: programItem.businessOwnerId || '',
+          technicalOwnerId: programItem.technicalOwnerId || '',
+          vendorId: programItem.vendorId || '',
+
+          // Project link
+          projectId: programItem.projectId || null,
+
+          createdAt: now,
+          updatedAt: now
+        };
+
+        const updatedPlanning = {
+          ...p,
+          programItems: [...p.programItems, newItem],
+          lastModified: now
+        };
+
+        // Recalculate program metrics after adding item
+        return recalculateProgramMetrics(updatedPlanning);
+      }
+      return p;
+    }));
+  };
+
+  const updateProgramItem = (planningId, itemId, updates) => {
+    setPlannings(plannings.map(p => {
+      if (p.id === planningId) {
+        const now = new Date().toISOString();
+        const updatedPlanning = {
+          ...p,
+          programItems: p.programItems.map(item =>
+            item.id === itemId ? { ...item, ...updates, updatedAt: now } : item
+          ),
+          lastModified: now
+        };
+
+        // Recalculate program metrics after updating item
+        return recalculateProgramMetrics(updatedPlanning);
+      }
+      return p;
+    }));
+  };
+
+  const deleteProgramItem = (planningId, itemId) => {
+    setPlannings(plannings.map(p => {
+      if (p.id === planningId) {
+        const updatedPlanning = {
+          ...p,
+          programItems: p.programItems.filter(item => item.id !== itemId),
+          lastModified: new Date().toISOString()
+        };
+
+        // Recalculate program metrics after deleting item
+        return recalculateProgramMetrics(updatedPlanning);
+      }
+      return p;
+    }));
+  };
+
+  // Helper function to calculate program metrics from program items
+  const recalculateProgramMetrics = (planning) => {
+    const items = planning.programItems || [];
+
+    if (items.length === 0) {
+      return {
+        ...planning,
+        program: {
+          ...planning.program,
+          totalBudget: 0,
+          overallProgress: 0,
+          startDate: null,
+          endDate: null,
+          gapsAddressed: 0,
+          updatedAt: new Date().toISOString()
+        }
+      };
+    }
+
+    // Calculate total budget
+    const totalBudget = items.reduce((sum, item) => sum + (item.estimatedBudget || 0), 0);
+
+    // Calculate average progress
+    const overallProgress = Math.round(
+      items.reduce((sum, item) => sum + (item.progress || 0), 0) / items.length
+    );
+
+    // Find earliest start date
+    const startDates = items.map(i => i.startDate).filter(Boolean);
+    const startDate = startDates.length > 0 ? startDates.sort()[0] : null;
+
+    // Calculate end dates and find latest
+    const endDates = items.map(item => {
+      if (!item.startDate || !item.estimatedDuration) return null;
+      const start = new Date(item.startDate);
+      const duration = item.estimatedDuration || 0;
+      const unit = item.durationUnit || 'weeks';
+
+      let daysToAdd = 0;
+      if (unit === 'hours') daysToAdd = Math.ceil(duration / 8); // 8 hours per day
+      else if (unit === 'days') daysToAdd = duration;
+      else if (unit === 'weeks') daysToAdd = duration * 7;
+      else if (unit === 'months') daysToAdd = duration * 30;
+
+      const end = new Date(start);
+      end.setDate(end.getDate() + daysToAdd);
+      return end.toISOString().split('T')[0];
+    }).filter(Boolean);
+
+    const endDate = endDates.length > 0 ? endDates.sort().reverse()[0] : null;
+
+    // Count total gaps from all components
+    const allComponents = [];
+    (planning.level0Columns || []).forEach(col => {
+      (col.components || []).forEach(comp => {
+        allComponents.push(comp);
+        // Include subcomponents
+        if (comp.subcomponents) {
+          allComponents.push(...comp.subcomponents);
+        }
+      });
+    });
+
+    const totalGaps = allComponents.reduce((sum, comp) => {
+      return sum + ((comp.gaps || []).length || 0);
+    }, 0);
+
+    // Count addressed gaps (unique gaps selected in program items)
+    const addressedGaps = new Set();
+    items.forEach(item => {
+      (item.selectedGaps || []).forEach(gapId => addressedGaps.add(gapId));
+    });
+    const gapsAddressed = addressedGaps.size;
+
+    return {
+      ...planning,
+      program: {
+        ...planning.program,
+        totalBudget,
+        overallProgress,
+        startDate,
+        endDate,
+        totalGaps,
+        gapsAddressed,
+        updatedAt: new Date().toISOString()
+      }
+    };
+  };
+
   // Subcomponent operations - Recursive helper to find and update component at any level
   const findAndUpdateComponent = (components, componentPath, updateFn) => {
     if (componentPath.length === 0) return components;
@@ -478,6 +710,12 @@ export function useTransformationPlanning() {
     addSubcomponent,
     updateSubcomponent,
     deleteSubcomponent,
+    // Program operations
+    updateProgram,
+    addProgramItem,
+    updateProgramItem,
+    deleteProgramItem,
+    // Roadmap Item operations (legacy - keep for backward compatibility)
     addRoadmapItem,
     updateRoadmapItem,
     deleteRoadmapItem,
