@@ -27,7 +27,7 @@ export function TransformationPlanningPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Transformation Planning</h1>
           <p className="text-gray-600 mt-2">
-            Strategic planning and roadmaps
+            Strategic planning and programs
           </p>
         </div>
         <Button

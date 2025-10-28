@@ -64,7 +64,7 @@ export function Sidebar() {
         <MenuItem icon={Target} path="/transformation-planning">
           Transformation Planning
           <span className="text-xs text-gray-400 block mt-0.5">
-            Strategic planning and roadmaps
+            Strategic planning and programs
           </span>
         </MenuItem>
 

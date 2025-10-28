@@ -34,7 +34,7 @@ const PROGRESS_STATUS_OPTIONS = [
   { value: 'on-hold', label: 'On Hold', color: 'bg-orange-500' }
 ];
 
-export function RoadmapItemDetailDialog({ open, onClose, onSave, roadmapItem, capabilities = [] }) {
+export function ProgramItemDetailDialog({ open, onClose, onSave, programItem, capabilities = [] }) {
   const [activeTab, setActiveTab] = useState('basic');
   const [formData, setFormData] = useState({
     name: '',
@@ -67,7 +67,7 @@ export function RoadmapItemDetailDialog({ open, onClose, onSave, roadmapItem, ca
 
   // Pre-fill form when editing
   useEffect(() => {
-    if (roadmapItem && open) {
+    if (programItem && open) {
       // Map old values to new standardized values (backward compatibility)
       const mapOldStrategyToNew = (oldValue) => {
         const mapping = {
@@ -93,48 +93,48 @@ export function RoadmapItemDetailDialog({ open, onClose, onSave, roadmapItem, ca
       };
 
       // Data migration: If old asIs exists but no selectedAsIsComponents, migrate to ALL linked
-      const migratedAsIsSelection = roadmapItem.selectedAsIsComponents
-        ? roadmapItem.selectedAsIsComponents
-        : (roadmapItem.asIs || roadmapItem.currentState)
-          ? roadmapItem.linkedCapabilities || []
+      const migratedAsIsSelection = programItem.selectedAsIsComponents
+        ? programItem.selectedAsIsComponents
+        : (programItem.asIs || programItem.currentState)
+          ? programItem.linkedCapabilities || []
           : [];
 
-      const migratedToBeSelection = roadmapItem.selectedToBeComponents
-        ? roadmapItem.selectedToBeComponents
-        : (roadmapItem.toBe || roadmapItem.desiredCapability)
-          ? roadmapItem.linkedCapabilities || []
+      const migratedToBeSelection = programItem.selectedToBeComponents
+        ? programItem.selectedToBeComponents
+        : (programItem.toBe || programItem.desiredCapability)
+          ? programItem.linkedCapabilities || []
           : [];
 
       setFormData({
-        name: roadmapItem.name || '',
-        description: roadmapItem.description || '',
-        strategy: mapOldStrategyToNew(roadmapItem.strategy || roadmapItem.scope),
-        linkedCapabilities: roadmapItem.linkedCapabilities || [],
+        name: programItem.name || '',
+        description: programItem.description || '',
+        strategy: mapOldStrategyToNew(programItem.strategy || programItem.scope),
+        linkedCapabilities: programItem.linkedCapabilities || [],
 
         // Assessment - NEW APPROACH with backward compatibility
         selectedAsIsComponents: migratedAsIsSelection,
-        asIsUserNotes: roadmapItem.asIsUserNotes || '',
+        asIsUserNotes: programItem.asIsUserNotes || '',
         selectedToBeComponents: migratedToBeSelection,
-        toBeUserNotes: roadmapItem.toBeUserNotes || '',
-        selectedBusinessImpactComponents: roadmapItem.selectedBusinessImpactComponents || [],
-        businessImpactUserNotes: roadmapItem.businessImpactUserNotes || '',
-        gaps: roadmapItem.gaps || [],
+        toBeUserNotes: programItem.toBeUserNotes || '',
+        selectedBusinessImpactComponents: programItem.selectedBusinessImpactComponents || [],
+        businessImpactUserNotes: programItem.businessImpactUserNotes || '',
+        gaps: programItem.gaps || [],
 
         // Timeline
-        startDate: roadmapItem.startDate || '',
-        endDate: roadmapItem.endDate || '',
-        expectedStart: roadmapItem.expectedStart || '',
-        estimatedDuration: roadmapItem.estimatedDuration || '',
-        durationUnit: roadmapItem.durationUnit || 'weeks',
+        startDate: programItem.startDate || '',
+        endDate: programItem.endDate || '',
+        expectedStart: programItem.expectedStart || '',
+        estimatedDuration: programItem.estimatedDuration || '',
+        durationUnit: programItem.durationUnit || 'weeks',
 
         // Ownership
-        owner: roadmapItem.owner || '',
+        owner: programItem.owner || '',
 
         // Classification
-        progressStatus: mapOldStatusToNew(roadmapItem.progressStatus || roadmapItem.status)
+        progressStatus: mapOldStatusToNew(programItem.progressStatus || programItem.status)
       });
     }
-  }, [roadmapItem, open]);
+  }, [programItem, open]);
 
   // Reset to first tab when opening
   useEffect(() => {
@@ -298,7 +298,7 @@ export function RoadmapItemDetailDialog({ open, onClose, onSave, roadmapItem, ca
     <Dialog open={open} onClose={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Edit Roadmap Item</DialogTitle>
+          <DialogTitle>Edit Program Item</DialogTitle>
         </DialogHeader>
 
         {/* Tab Navigation */}
@@ -327,7 +327,7 @@ export function RoadmapItemDetailDialog({ open, onClose, onSave, roadmapItem, ca
             <div className="space-y-4">
               <div>
                 <Label>
-                  Roadmap Item Name <span className="text-red-500">*</span>
+                  Program Item Name <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   autoFocus
@@ -342,7 +342,7 @@ export function RoadmapItemDetailDialog({ open, onClose, onSave, roadmapItem, ca
                 <Textarea
                   value={formData.description}
                   onChange={(value) => updateField('description', value)}
-                  placeholder="Detailed description of the roadmap item..."
+                  placeholder="Detailed description of the program item..."
                   rows={6}
                 />
               </div>
@@ -623,7 +623,7 @@ export function RoadmapItemDetailDialog({ open, onClose, onSave, roadmapItem, ca
                   onChange={(value) => updateField('expectedStart', value)}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  When do you expect to start this roadmap item?
+                  When do you expect to start this program item?
                 </p>
               </div>
 
@@ -711,7 +711,7 @@ export function RoadmapItemDetailDialog({ open, onClose, onSave, roadmapItem, ca
                   onChange={(value) => updateField('owner', value)}
                   placeholder="E.g. John Doe or IT Department"
                 />
-                <p className="text-xs text-gray-500 mt-1">Person or team responsible for this roadmap item</p>
+                <p className="text-xs text-gray-500 mt-1">Person or team responsible for this program item</p>
               </div>
             </div>
           )}

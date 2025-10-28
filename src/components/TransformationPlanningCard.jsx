@@ -102,7 +102,7 @@ export function TransformationPlanningCard({ planning, onClick, onDelete }) {
           </div>
           <div className="flex items-center gap-2 text-gray-600">
             <Route size={16} />
-            <span>{planning.roadmapItems?.length || 0} roadmap items</span>
+            <span>{planning.programItems?.length || 0} program items</span>
           </div>
           <div className="flex items-center gap-2 text-gray-600">
             <CheckCircle size={16} />

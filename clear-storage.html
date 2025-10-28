@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear LocalStorage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #dc2626;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #b91c1c;
+        }
+        .success {
+            background: #16a34a;
+        }
+        .success:hover {
+            background: #15803d;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .error {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .ok {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear LocalStorage</h1>
+        <p>This will clear all stored data for the Enterprise Strategy app.</p>
+
+        <h3>Current Storage:</h3>
+        <pre id="current-data" style="background: #f3f4f6; padding: 10px; border-radius: 4px; overflow: auto; max-height: 200px;"></pre>
+
+        <button onclick="clearStorage()">Clear All Data</button>
+        <button class="success" onclick="goToApp()">Go to App</button>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function showCurrentData() {
+            const data = {
+                transformationPlannings: localStorage.getItem('transformationPlannings'),
+                'settings-storage': localStorage.getItem('settings-storage')
+            };
+            document.getElementById('current-data').textContent = JSON.stringify(data, null, 2);
+        }
+
+        function clearStorage() {
+            try {
+                localStorage.clear();
+                showStatus('✅ Storage cleared successfully!', 'ok');
+                showCurrentData();
+            } catch (e) {
+                showStatus('❌ Error: ' + e.message, 'error');
+            }
+        }
+
+        function goToApp() {
+            window.location.href = 'http://localhost:5173/';
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = type;
+            status.style.display = 'block';
+        }
+
+        // Show current data on load
+        showCurrentData();
+    </script>
+</body>
+</html>

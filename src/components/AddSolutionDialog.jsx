@@ -29,7 +29,7 @@ const SUPPORT_OPTIONS = [
   { value: 'not-touched', label: 'TBD', color: 'bg-slate-100', textColor: 'text-slate-700', border: 'border-2 border-slate-300' }
 ];
 
-export function AddSolutionDialog({ open, onClose, onAdd, roadmapItems = [], plannings = [], currentPlanningId = null }) {
+export function AddSolutionDialog({ open, onClose, onAdd, programItems = [], plannings = [], currentPlanningId = null }) {
   const { people, vendors, groups, addPerson, addVendor } = useSettings();
   const [activeTab, setActiveTab] = useState('basic');
   const [showAddPersonDialog, setShowAddPersonDialog] = useState(false);
@@ -42,16 +42,16 @@ export function AddSolutionDialog({ open, onClose, onAdd, roadmapItems = [], pla
     description: '',
     group: '',
     strategy: 'not-touched',
-    linkedRoadmapItems: [],
+    linkedProgramItems: [],
 
     // Assessment - using new selective inheritance field structure
-    selectedAsIsRoadmapItems: [],
+    selectedAsIsProgramItems: [],
     selectedAsIsComponents: [],
     asIsUserNotes: '',
-    selectedToBeRoadmapItems: [],
+    selectedToBeProgramItems: [],
     selectedToBeComponents: [],
     toBeUserNotes: '',
-    selectedBusinessImpactRoadmapItems: [],
+    selectedBusinessImpactProgramItems: [],
     selectedBusinessImpactComponents: [],
     businessImpactUserNotes: '',
     gaps: [],
@@ -91,16 +91,16 @@ export function AddSolutionDialog({ open, onClose, onAdd, roadmapItems = [], pla
       description: '',
       group: '',
       strategy: 'not-touched',
-      linkedRoadmapItems: [],
+      linkedProgramItems: [],
 
       // Assessment fields
-      selectedAsIsRoadmapItems: [],
+      selectedAsIsProgramItems: [],
       selectedAsIsComponents: [],
       asIsUserNotes: '',
-      selectedToBeRoadmapItems: [],
+      selectedToBeProgramItems: [],
       selectedToBeComponents: [],
       toBeUserNotes: '',
-      selectedBusinessImpactRoadmapItems: [],
+      selectedBusinessImpactProgramItems: [],
       selectedBusinessImpactComponents: [],
       businessImpactUserNotes: '',
       gaps: [],
@@ -146,12 +146,12 @@ export function AddSolutionDialog({ open, onClose, onAdd, roadmapItems = [], pla
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleRoadmapItemToggle = (itemId) => {
+  const handleProgramItemToggle = (itemId) => {
     setFormData(prev => ({
       ...prev,
-      linkedRoadmapItems: prev.linkedRoadmapItems.includes(itemId)
-        ? prev.linkedRoadmapItems.filter(id => id !== itemId)
-        : [...prev.linkedRoadmapItems, itemId]
+      linkedProgramItems: prev.linkedProgramItems.includes(itemId)
+        ? prev.linkedProgramItems.filter(id => id !== itemId)
+        : [...prev.linkedProgramItems, itemId]
     }));
   };
 
@@ -484,15 +484,15 @@ export function AddSolutionDialog({ open, onClose, onAdd, roadmapItems = [], pla
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <Label>Dependencies</Label>
-                  {(availableSolutions.length > 0 || roadmapItems.length > 0) && (
+                  {(availableSolutions.length > 0 || programItems.length > 0) && (
                     <span className="text-xs text-gray-500">
                       {formData.dependencies.length} selected
                     </span>
                   )}
                 </div>
 
-                {availableSolutions.length === 0 && roadmapItems.length === 0 ? (
-                  <p className="text-sm text-gray-500 italic">No solutions or roadmap items available to link as dependencies</p>
+                {availableSolutions.length === 0 && programItems.length === 0 ? (
+                  <p className="text-sm text-gray-500 italic">No solutions or program items available to link as dependencies</p>
                 ) : (
                   <>
                     <div className="mb-3">
@@ -522,10 +522,10 @@ export function AddSolutionDialog({ open, onClose, onAdd, roadmapItems = [], pla
                           </optgroup>
                         )}
 
-                        {/* Roadmap Items */}
-                        {roadmapItems.length > 0 && (
-                          <optgroup label="Roadmap Items">
-                            {roadmapItems
+                        {/* Program Items */}
+                        {programItems.length > 0 && (
+                          <optgroup label="Program Items">
+                            {programItems
                               .filter(item => !formData.dependencies.includes(item.id))
                               .map(item => (
                                 <option key={item.id} value={item.id}>
@@ -570,22 +570,22 @@ export function AddSolutionDialog({ open, onClose, onAdd, roadmapItems = [], pla
                             );
                           }
 
-                          // Check if it's a roadmap item
-                          const depRoadmapItem = roadmapItems.find(r => r.id === depId);
-                          if (depRoadmapItem) {
+                          // Check if it's a program item
+                          const depProgramItem = programItems.find(r => r.id === depId);
+                          if (depProgramItem) {
                             return (
                               <div
                                 key={depId}
                                 className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
                               >
                                 <div>
-                                  <div className="text-xs font-medium text-purple-600 mb-1">Roadmap Item</div>
+                                  <div className="text-xs font-medium text-purple-600 mb-1">Program Item</div>
                                   <div className="text-sm font-medium text-gray-900">
-                                    {depRoadmapItem.name}
+                                    {depProgramItem.name}
                                   </div>
-                                  {depRoadmapItem.description && (
+                                  {depProgramItem.description && (
                                     <div className="text-xs text-gray-500">
-                                      {depRoadmapItem.description}
+                                      {depProgramItem.description}
                                     </div>
                                   )}
                                 </div>
@@ -851,20 +851,20 @@ export function AddSolutionDialog({ open, onClose, onAdd, roadmapItems = [], pla
                 </p>
               </div>
 
-              {/* Linked Roadmap Items */}
-              {roadmapItems.length > 0 && (
+              {/* Linked Program Items */}
+              {programItems.length > 0 && (
                 <div>
-                  <Label>Linked Roadmap Items</Label>
+                  <Label>Linked Program Items</Label>
                   <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                    {roadmapItems.map(item => (
+                    {programItems.map(item => (
                       <label
                         key={item.id}
                         className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded"
                       >
                         <input
                           type="checkbox"
-                          checked={formData.linkedRoadmapItems.includes(item.id)}
-                          onChange={() => handleRoadmapItemToggle(item.id)}
+                          checked={formData.linkedProgramItems.includes(item.id)}
+                          onChange={() => handleProgramItemToggle(item.id)}
                           className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                         />
                         <div>

@@ -25,7 +25,7 @@ const PROGRESS_STATUS_OPTIONS = [
   { value: 'on-hold', label: 'On Hold' }
 ];
 
-export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }) {
+export function AddProgramItemDialog({ open, onClose, onAdd, capabilities = [] }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [strategy, setStrategy] = useState('tbd');
@@ -129,13 +129,13 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
     <Dialog open={open} onClose={handleClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Add Roadmap Item</DialogTitle>
+          <DialogTitle>Add Program Item</DialogTitle>
         </DialogHeader>
 
         <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
             <Label>
-              Roadmap Item Name <span className="text-red-500">*</span>
+              Program Item Name <span className="text-red-500">*</span>
             </Label>
             <Input
               autoFocus
@@ -150,7 +150,7 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
             <Textarea
               value={description}
               onChange={setDescription}
-              placeholder="Brief description of the roadmap item..."
+              placeholder="Brief description of the program item..."
               rows={3}
             />
           </div>
@@ -166,7 +166,7 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
                 onChange={setExpectedStart}
               />
               <p className="text-xs text-gray-500 mt-1">
-                When do you expect to start this roadmap item?
+                When do you expect to start this program item?
               </p>
             </div>
 
@@ -270,7 +270,7 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
             Cancel
           </Button>
           <Button variant="primary" onClick={handleAdd} disabled={!name.trim()}>
-            Add Roadmap Item
+            Add Program Item
           </Button>
         </DialogFooter>
       </DialogContent>

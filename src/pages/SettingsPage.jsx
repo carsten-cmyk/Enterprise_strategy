@@ -654,7 +654,7 @@ export function SettingsPage() {
                   <li>• 3 vendors (with full details)</li>
                   <li>• 3 project groups (with full details)</li>
                   <li>• 3 transformation plannings</li>
-                  <li>• Multiple solutions & roadmap items</li>
+                  <li>• Multiple solutions & program items</li>
                 </ul>
                 <Button
                   variant="primary"
@@ -679,7 +679,7 @@ export function SettingsPage() {
                   <li>• All vendors</li>
                   <li>• All project groups</li>
                   <li>• All transformation plannings</li>
-                  <li>• All solutions & roadmap items</li>
+                  <li>• All solutions & program items</li>
                 </ul>
                 <Button
                   variant="danger"

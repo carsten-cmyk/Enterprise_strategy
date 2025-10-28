@@ -71,8 +71,8 @@ export function useTransformationPlanning() {
         updatedAt: now
       },
       level0Columns: [],
-      programItems: [],  // NEW - replaces roadmapItems
-      roadmapItems: [],  // Keep for backward compatibility during migration
+      programItems: [],  // NEW - replaces programItems
+      programItems: [],  // Keep for backward compatibility during migration
       solutions: []
     };
     setPlannings([...plannings, newPlanning]);
@@ -116,10 +116,11 @@ export function useTransformationPlanning() {
 
   // Level 0 Column operations
   const addLevel0Column = (planningId, columnData) => {
+    const newId = Date.now().toString();
     setPlannings(plannings.map(p => {
       if (p.id === planningId) {
         const newColumn = {
-          id: Date.now().toString(),
+          id: newId,
           name: typeof columnData === 'string' ? columnData : columnData.name,
           description: typeof columnData === 'object' ? (columnData.description || '') : '',
           order: p.level0Columns.length,
@@ -133,6 +134,7 @@ export function useTransformationPlanning() {
       }
       return p;
     }));
+    return newId;
   };
 
   const updateLevel0Column = (planningId, columnId, updates) => {
@@ -165,6 +167,7 @@ export function useTransformationPlanning() {
 
   // Component operations
   const addComponent = (planningId, columnId, component) => {
+    const newId = Date.now().toString();
     setPlannings(plannings.map(p => {
       if (p.id === planningId) {
         return {
@@ -172,7 +175,7 @@ export function useTransformationPlanning() {
           level0Columns: p.level0Columns.map(col => {
             if (col.id === columnId) {
               const newComponent = {
-                id: Date.now().toString(),
+                id: newId,
                 name: component.name,
                 description: component.description || '',
                 support: component.support || 'primary',
@@ -190,6 +193,7 @@ export function useTransformationPlanning() {
                 vendor: component.vendor || '',
                 technologyStack: component.technologyStack || '',
                 integrationPoints: component.integrationPoints || '',
+                gaps: component.gaps || [],
                 subcomponents: [] // Support for nested components
               };
               return {
@@ -204,6 +208,7 @@ export function useTransformationPlanning() {
       }
       return p;
     }));
+    return newId;
   };
 
   const updateComponent = (planningId, columnId, componentId, updates) => {
@@ -250,59 +255,6 @@ export function useTransformationPlanning() {
     }));
   };
 
-  // Roadmap Item operations
-  const addRoadmapItem = (planningId, roadmapItem) => {
-    setPlannings(plannings.map(p => {
-      if (p.id === planningId) {
-        const newItem = {
-          id: Date.now().toString(),
-          name: roadmapItem.name,
-          description: roadmapItem.description || '',
-          scope: roadmapItem.scope || 'not-touched',
-          linkedCapabilities: roadmapItem.linkedCapabilities || [],
-          startDate: roadmapItem.startDate || '',
-          endDate: roadmapItem.endDate || '',
-          owner: roadmapItem.owner || '',
-          status: roadmapItem.status || ''
-        };
-        return {
-          ...p,
-          roadmapItems: [...p.roadmapItems, newItem],
-          lastModified: new Date().toISOString()
-        };
-      }
-      return p;
-    }));
-  };
-
-  const updateRoadmapItem = (planningId, itemId, updates) => {
-    setPlannings(plannings.map(p => {
-      if (p.id === planningId) {
-        return {
-          ...p,
-          roadmapItems: p.roadmapItems.map(item =>
-            item.id === itemId ? { ...item, ...updates } : item
-          ),
-          lastModified: new Date().toISOString()
-        };
-      }
-      return p;
-    }));
-  };
-
-  const deleteRoadmapItem = (planningId, itemId) => {
-    setPlannings(plannings.map(p => {
-      if (p.id === planningId) {
-        return {
-          ...p,
-          roadmapItems: p.roadmapItems.filter(item => item.id !== itemId),
-          lastModified: new Date().toISOString()
-        };
-      }
-      return p;
-    }));
-  };
-
   // Solution operations
   const addSolution = (planningId, solution) => {
     setPlannings(plannings.map(p => {
@@ -312,7 +264,7 @@ export function useTransformationPlanning() {
           name: solution.name,
           description: solution.description || '',
           scope: solution.scope || 'not-touched',
-          linkedRoadmapItems: solution.linkedRoadmapItems || [],
+          linkedProgramItems: solution.linkedProgramItems || [],
           budget: solution.budget || '',
           vendor: solution.vendor || '',
           implementationPartner: solution.implementationPartner || '',
@@ -715,10 +667,10 @@ export function useTransformationPlanning() {
     addProgramItem,
     updateProgramItem,
     deleteProgramItem,
-    // Roadmap Item operations (legacy - keep for backward compatibility)
-    addRoadmapItem,
-    updateRoadmapItem,
-    deleteRoadmapItem,
+    // Program Item operations (legacy - keep for backward compatibility)
+    addProgramItem,
+    updateProgramItem,
+    deleteProgramItem,
     addSolution,
     updateSolution,
     deleteSolution

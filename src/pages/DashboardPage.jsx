@@ -11,7 +11,7 @@ export function DashboardPage() {
 
   // Calculate statistics
   const totalPlannings = plannings.length;
-  const totalRoadmapItems = plannings.reduce((sum, p) => sum + (p.roadmapItems?.length || 0), 0);
+  const totalProgramItems = plannings.reduce((sum, p) => sum + (p.programItems?.length || 0), 0);
   const totalSolutions = plannings.reduce((sum, p) => sum + (p.solutions?.length || 0), 0);
 
   // Calculate financial statistics from solutions
@@ -47,9 +47,9 @@ export function DashboardPage() {
 
   const totalSupportItems = Object.values(supportTypeDistribution).reduce((sum, val) => sum + val, 0);
 
-  // Calculate roadmap item status distribution
+  // Calculate program item status distribution
   const statusDistribution = plannings.reduce((dist, p) => {
-    p.roadmapItems?.forEach(item => {
+    p.programItems?.forEach(item => {
       const status = item.status || 'planning';
       dist[status] = (dist[status] || 0) + 1;
     });
@@ -104,8 +104,8 @@ export function DashboardPage() {
               <TrendingUp className="text-rose-600" size={24} />
             </div>
           </div>
-          <div className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wide">Open roadmap items</div>
-          <div className="text-4xl font-bold text-gray-900">{totalRoadmapItems}</div>
+          <div className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wide">Open program items</div>
+          <div className="text-4xl font-bold text-gray-900">{totalProgramItems}</div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
@@ -189,16 +189,16 @@ export function DashboardPage() {
           )}
         </div>
 
-        {/* Roadmap Status Distribution */}
+        {/* Program Status Distribution */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Roadmap Item Status</h2>
-          {totalRoadmapItems === 0 ? (
-            <p className="text-gray-500 text-center py-8">No roadmap items yet</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Program Item Status</h2>
+          {totalProgramItems === 0 ? (
+            <p className="text-gray-500 text-center py-8">No program items yet</p>
           ) : (
             <div className="space-y-3">
               {statuses.map(status => {
                 const count = statusDistribution[status.key] || 0;
-                const percentage = totalRoadmapItems > 0 ? (count / totalRoadmapItems * 100).toFixed(1) : 0;
+                const percentage = totalProgramItems > 0 ? (count / totalProgramItems * 100).toFixed(1) : 0;
 
                 return (
                   <div key={status.key}>
@@ -247,7 +247,7 @@ export function DashboardPage() {
           <div className="space-y-3">
             {recentPlannings.map(planning => {
               const capCount = planning.level0Columns?.length || 0;
-              const roadmapCount = planning.roadmapItems?.length || 0;
+              const programItemCount = planning.programItems?.length || 0;
               const solutionCount = planning.solutions?.length || 0;
 
               return (
@@ -277,7 +277,7 @@ export function DashboardPage() {
                   <div className="flex items-center gap-4 text-xs text-gray-600">
                     <span>{capCount} capabilities</span>
                     <span>•</span>
-                    <span>{roadmapCount} roadmap items</span>
+                    <span>{programItemCount} program items</span>
                     <span>•</span>
                     <span>{solutionCount} solutions</span>
                   </div>

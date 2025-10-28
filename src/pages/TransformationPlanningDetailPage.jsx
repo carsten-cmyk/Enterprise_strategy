@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Edit, Calendar, User, FileText, ChevronDown, ChevronRight, Download } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Edit, Calendar, User, FileText, ChevronDown, ChevronRight, Download, Database } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { AddLevel0ColumnDialog } from '../components/AddLevel0ColumnDialog';
 import { AddComponentDialog } from '../components/AddComponentDialog';
 import { ComponentDetailDialog } from '../components/ComponentDetailDialog';
 import { CreatePlanningDialog } from '../components/CreatePlanningDialog';
-import { AddRoadmapItemDialog } from '../components/AddRoadmapItemDialog';
-import { RoadmapItemDetailDialog } from '../components/RoadmapItemDetailDialog';
+import { AddProgramItemDialog } from '../components/AddProgramItemDialog';
+import { ProgramItemDetailDialog } from '../components/ProgramItemDetailDialog';
 import { AddSolutionDialog } from '../components/AddSolutionDialog';
 import { SolutionDetailDialog } from '../components/SolutionDetailDialog';
 import { CapabilityReportDialog } from '../components/CapabilityReportDialog';
 import { useTransformationPlanning } from '../data/transformationPlanningStore';
+import { seedPlanningData } from '../utils/seedData';
 
 export function TransformationPlanningDetailPage() {
   const { id } = useParams();
@@ -21,15 +22,18 @@ export function TransformationPlanningDetailPage() {
   const [showAddComponentDialog, setShowAddComponentDialog] = useState(false);
   const [showComponentDetailDialog, setShowComponentDetailDialog] = useState(false);
   const [showEditBusinessGoalDialog, setShowEditBusinessGoalDialog] = useState(false);
-  const [showAddRoadmapItemDialog, setShowAddRoadmapItemDialog] = useState(false);
-  const [showRoadmapItemDetailDialog, setShowRoadmapItemDetailDialog] = useState(false);
+  // const [showAddProgramItemDialog, setShowAddProgramItemDialog] = useState(false);
+  // const [showProgramItemDetailDialog, setShowProgramItemDetailDialog] = useState(false);
+  // const [selectedProgramItem, setSelectedProgramItem] = useState(null);
+  const [showAddProgramItemDialog, setShowAddProgramItemDialog] = useState(false);
+  const [showProgramItemDetailDialog, setShowProgramItemDetailDialog] = useState(false);
   const [showAddSolutionDialog, setShowAddSolutionDialog] = useState(false);
   const [showSolutionDetailDialog, setShowSolutionDetailDialog] = useState(false);
   const [showCapabilityReportDialog, setShowCapabilityReportDialog] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState(null);
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [selectedComponentPath, setSelectedComponentPath] = useState([]);
-  const [selectedRoadmapItem, setSelectedRoadmapItem] = useState(null);
+  const [selectedProgramItem, setSelectedProgramItem] = useState(null);
   const [selectedSolution, setSelectedSolution] = useState(null);
   const [selectedCapabilityForReport, setSelectedCapabilityForReport] = useState(null);
   const [expandedComponents, setExpandedComponents] = useState({}); // Track which components are expanded
@@ -46,9 +50,13 @@ export function TransformationPlanningDetailPage() {
     deleteSubcomponent,
     updateSubcomponent,
     updateBusinessGoal,
-    addRoadmapItem,
-    updateRoadmapItem,
-    deleteRoadmapItem,
+    updateProgram,
+    // addProgramItem,
+    // updateProgramItem,
+    // deleteProgramItem,
+    addProgramItem,
+    updateProgramItem,
+    deleteProgramItem,
     addSolution,
     updateSolution,
     deleteSolution
@@ -94,6 +102,39 @@ export function TransformationPlanningDetailPage() {
       ...prev,
       [componentId]: !prev[componentId]
     }));
+  };
+
+  // Load demo data into planning
+  const handleLoadDemoData = () => {
+    if (window.confirm('This will add demo data to this planning. Are you sure?')) {
+      const transformationPlanningStore = {
+        getPlanning,
+        addLevel0Column,
+        updateLevel0Column,
+        deleteLevel0Column,
+        addComponent,
+        deleteComponent,
+        updateComponent,
+        addSubcomponent,
+        deleteSubcomponent,
+        updateSubcomponent,
+        updateBusinessGoal,
+        updateProgram,
+        // addProgramItem,
+        // updateProgramItem,
+        // deleteProgramItem,
+        addProgramItem,
+        updateProgramItem,
+        deleteProgramItem,
+        addSolution,
+        updateSolution,
+        deleteSolution
+      };
+
+      seedPlanningData(id, transformationPlanningStore);
+      alert('Demo data loaded successfully! Refresh the page to see the changes.');
+      window.location.reload();
+    }
   };
 
   // Download structured text report
@@ -464,25 +505,39 @@ export function TransformationPlanningDetailPage() {
     }
   };
 
-  // Roadmap Item handlers
-  const handleAddRoadmapItem = (roadmapItem) => {
-    addRoadmapItem(id, roadmapItem);
+  // // Program Item handlers
+  // const handleAddProgramItem = (programItem) => {
+  //   addProgramItem(id, programItem);
+  // };
+
+  // const handleProgramItemClick = (item) => {
+  //   setSelectedProgramItem(item);
+  //   setShowProgramItemDetailDialog(true);
+  // };
+
+  // const handleUpdateProgramItem = (updatedItem) => {
+  //   updateProgramItem(id, updatedItem.id, updatedItem);
+  // };
+
+  // Program Item handlers
+  const handleAddProgramItem = (programItem) => {
+    addProgramItem(id, programItem);
   };
 
-  const handleRoadmapItemClick = (item) => {
-    setSelectedRoadmapItem(item);
-    setShowRoadmapItemDetailDialog(true);
+  const handleProgramItemClick = (item) => {
+    setSelectedProgramItem(item);
+    setShowProgramItemDetailDialog(true);
   };
 
-  const handleUpdateRoadmapItem = (updates) => {
-    if (selectedRoadmapItem) {
-      updateRoadmapItem(id, selectedRoadmapItem.id, updates);
+  const handleUpdateProgramItem = (updates) => {
+    if (selectedProgramItem) {
+      updateProgramItem(id, selectedProgramItem.id, updates);
     }
   };
 
-  const handleDeleteRoadmapItem = (itemId, itemName) => {
+  const handleDeleteProgramItem = (itemId, itemName) => {
     if (window.confirm(`Are you sure you want to delete "${itemName}"?`)) {
-      deleteRoadmapItem(id, itemId);
+      deleteProgramItem(id, itemId);
     }
   };
 
@@ -535,15 +590,26 @@ export function TransformationPlanningDetailPage() {
               </p>
             )}
           </div>
-          <Button
-            variant="secondary"
-            onClick={() => setShowEditBusinessGoalDialog(true)}
-            className="flex items-center gap-2 flex-shrink-0"
-            size="sm"
-          >
-            <Edit size={16} />
-            Edit business goal
-          </Button>
+          <div className="flex gap-2 flex-shrink-0">
+            <Button
+              variant="secondary"
+              onClick={() => setShowEditBusinessGoalDialog(true)}
+              className="flex items-center gap-2"
+              size="sm"
+            >
+              <Edit size={16} />
+              Edit business goal
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleLoadDemoData}
+              className="flex items-center gap-2"
+              size="sm"
+            >
+              <Database size={16} />
+              Load Demo Data
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -746,36 +812,36 @@ export function TransformationPlanningDetailPage() {
         )}
       </div>
 
-      {/* Roadmap Items Section */}
+      {/* Program Items Section */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Roadmap Items</h2>
+          <h2 className="text-xl font-bold text-gray-900">Program Items</h2>
           <Button
             variant="primary"
-            onClick={() => setShowAddRoadmapItemDialog(true)}
+            onClick={() => setShowAddProgramItemDialog(true)}
             className="flex items-center gap-2"
             size="sm"
           >
             <Plus size={18} />
-            Add Roadmap Item
+            Add Program Item
           </Button>
         </div>
 
-        {planning.roadmapItems?.length === 0 ? (
+        {planning.programItems?.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <p className="mb-4">No roadmap items yet</p>
+            <p className="mb-4">No program items yet</p>
             <Button
               variant="secondary"
-              onClick={() => setShowAddRoadmapItemDialog(true)}
+              onClick={() => setShowAddProgramItemDialog(true)}
               className="inline-flex items-center gap-2"
             >
               <Plus size={18} />
-              Add Your First Roadmap Item
+              Add Your First Program Item
             </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {planning.roadmapItems.map(item => {
+            {planning.programItems.map(item => {
               const scope = item.scope || 'not-touched';
 
               // Map scope to colors
@@ -817,7 +883,7 @@ export function TransformationPlanningDetailPage() {
                 <div
                   key={item.id}
                   className="bg-slate-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer relative"
-                  onClick={() => handleRoadmapItemClick(item)}
+                  onClick={() => handleProgramItemClick(item)}
                 >
                   {/* Color indicator bar */}
                   <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-lg ${colors.bg}`} />
@@ -830,7 +896,7 @@ export function TransformationPlanningDetailPage() {
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteRoadmapItem(item.id, item.name);
+                        handleDeleteProgramItem(item.id, item.name);
                       }}
                       className="text-gray-400 hover:text-red-600 -mt-1 -mr-1"
                     >
@@ -885,6 +951,210 @@ export function TransformationPlanningDetailPage() {
         )}
       </div>
 
+      {/* Program Section */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Program Overview</h2>
+
+          {/* Program Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="text-xs font-semibold text-blue-600 uppercase mb-1">Total Budget</div>
+              <div className="text-2xl font-bold text-blue-900">
+                {planning.program?.currency || 'DKK'} {(planning.program?.totalBudget || 0).toLocaleString()}
+              </div>
+            </div>
+
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+              <div className="text-xs font-semibold text-emerald-600 uppercase mb-1">Progress</div>
+              <div className="text-2xl font-bold text-emerald-900">
+                {planning.program?.overallProgress || 0}%
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="text-xs font-semibold text-amber-600 uppercase mb-1">Timeline</div>
+              <div className="text-sm font-semibold text-amber-900">
+                {planning.program?.startDate && planning.program?.endDate
+                  ? `${new Date(planning.program.startDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })} - ${new Date(planning.program.endDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`
+                  : 'Not set'}
+              </div>
+            </div>
+
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="text-xs font-semibold text-purple-600 uppercase mb-1">Gaps Addressed</div>
+              <div className="text-2xl font-bold text-purple-900">
+                {planning.program?.gapsAddressed || 0} / {planning.program?.totalGaps || 0}
+              </div>
+            </div>
+          </div>
+
+          {/* Executive Summaries */}
+          <div className="space-y-4">
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-gray-700 uppercase">Executive Summary</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newSummary = prompt('Executive Summary:', planning.program?.executiveSummary || '');
+                    if (newSummary !== null) {
+                      updateProgram(id, { executiveSummary: newSummary });
+                    }
+                  }}
+                  className="text-xs"
+                >
+                  <Edit size={14} className="mr-1" />
+                  Edit
+                </Button>
+              </div>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                {planning.program?.executiveSummary || <em className="text-gray-400">Click Edit to add executive summary...</em>}
+              </p>
+            </div>
+
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-gray-700 uppercase">Strategic Rationale</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newRationale = prompt('Strategic Rationale:', planning.program?.strategicRationale || '');
+                    if (newRationale !== null) {
+                      updateProgram(id, { strategicRationale: newRationale });
+                    }
+                  }}
+                  className="text-xs"
+                >
+                  <Edit size={14} className="mr-1" />
+                  Edit
+                </Button>
+              </div>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                {planning.program?.strategicRationale || <em className="text-gray-400">Click Edit to add strategic rationale...</em>}
+              </p>
+            </div>
+
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-gray-700 uppercase">Business Case</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newBusinessCase = prompt('Business Case:', planning.program?.businessCase || '');
+                    if (newBusinessCase !== null) {
+                      updateProgram(id, { businessCase: newBusinessCase });
+                    }
+                  }}
+                  className="text-xs"
+                >
+                  <Edit size={14} className="mr-1" />
+                  Edit
+                </Button>
+              </div>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                {planning.program?.businessCase || <em className="text-gray-400">Click Edit to add business case...</em>}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Program Items - COMMENTED OUT */}
+        {/* <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Program Items</h2>
+            <Button
+              variant="primary"
+              onClick={() => setShowAddProgramItemDialog(true)}
+              className="flex items-center gap-2"
+              size="sm"
+            >
+              <Plus size={18} />
+              Add Program Item
+            </Button>
+          </div>
+
+          {(!planning.programItems || planning.programItems.length === 0) ? (
+            <div className="text-center py-8 text-gray-500">
+              <p className="mb-4">No program items yet</p>
+              <Button
+                variant="secondary"
+                onClick={() => setShowAddProgramItemDialog(true)}
+                className="inline-flex items-center gap-2"
+              >
+                <Plus size={18} />
+                Add Your First Program Item
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {planning.programItems.map(item => (
+                <div
+                  key={item.id}
+                  onClick={() => handleProgramItemClick(item)}
+                  className="bg-slate-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <h3 className="font-semibold text-gray-900 flex-1 pr-2">{item.name}</h3>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Delete "${item.name}"?`)) {
+                          deleteProgramItem(id, item.id);
+                        }
+                      }}
+                      className="text-gray-400 hover:text-red-600 -mt-1 -mr-1"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+
+                  {item.description && (
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                      {item.description}
+                    </p>
+                  )}
+
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                      <span>Progress</span>
+                      <span className="font-semibold">{item.progress || 0}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all"
+                        style={{ width: `${item.progress || 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {item.estimatedBudget && (
+                    <div className="text-xs text-gray-600 mb-2">
+                      Budget: {item.currency || 'DKK'} {item.estimatedBudget.toLocaleString()}
+                    </div>
+                  )}
+
+                  {item.startDate && (
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <Calendar size={14} />
+                      <span>
+                        {new Date(item.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {item.estimatedDuration && ` (${item.estimatedDuration} ${item.durationUnit || 'weeks'})`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div> */}
+      </div>
+
       {/* Solutions Section */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
@@ -930,7 +1200,7 @@ export function TransformationPlanningDetailPage() {
               };
 
               const colors = getScopeColor();
-              const linkedRoadmapItemsCount = solution.linkedRoadmapItems?.length || 0;
+              const linkedProgramItemsCount = solution.linkedProgramItems?.length || 0;
 
               return (
                 <div
@@ -997,10 +1267,10 @@ export function TransformationPlanningDetailPage() {
                     </div>
                   )}
 
-                  {/* Linked Roadmap Items Count */}
-                  {linkedRoadmapItemsCount > 0 && (
+                  {/* Linked Program Items Count */}
+                  {linkedProgramItemsCount > 0 && (
                     <div className={`text-xs font-medium ${colors.text} ${colors.lightBg} px-2 py-1 rounded inline-block`}>
-                      {linkedRoadmapItemsCount} linked {linkedRoadmapItemsCount === 1 ? 'roadmap item' : 'roadmap items'}
+                      {linkedProgramItemsCount} linked {linkedProgramItemsCount === 1 ? 'program item' : 'program items'}
                     </div>
                   )}
                 </div>
@@ -1056,29 +1326,47 @@ export function TransformationPlanningDetailPage() {
         columnName={selectedColumn?.name}
       />
 
-      <AddRoadmapItemDialog
-        open={showAddRoadmapItemDialog}
-        onClose={() => setShowAddRoadmapItemDialog(false)}
-        onAdd={handleAddRoadmapItem}
+      <AddProgramItemDialog
+        open={showAddProgramItemDialog}
+        onClose={() => setShowAddProgramItemDialog(false)}
+        onAdd={handleAddProgramItem}
         capabilities={getAllComponents()}
       />
 
-      <RoadmapItemDetailDialog
-        open={showRoadmapItemDetailDialog}
+      <ProgramItemDetailDialog
+        open={showProgramItemDetailDialog}
         onClose={() => {
-          setShowRoadmapItemDetailDialog(false);
-          setSelectedRoadmapItem(null);
+          setShowProgramItemDetailDialog(false);
+          setSelectedProgramItem(null);
         }}
-        onSave={handleUpdateRoadmapItem}
-        roadmapItem={selectedRoadmapItem}
+        onSave={handleUpdateProgramItem}
+        programItem={selectedProgramItem}
         capabilities={getAllComponents()}
       />
+
+      {/* <AddProgramItemDialog
+        open={showAddProgramItemDialog}
+        onClose={() => setShowAddProgramItemDialog(false)}
+        onAdd={handleAddProgramItem}
+        planning={planning}
+      />
+
+      <ProgramItemDetailDialog
+        open={showProgramItemDetailDialog}
+        onClose={() => {
+          setShowProgramItemDetailDialog(false);
+          setSelectedProgramItem(null);
+        }}
+        onSave={handleUpdateProgramItem}
+        programItem={selectedProgramItem}
+        planning={planning}
+      /> */}
 
       <AddSolutionDialog
         open={showAddSolutionDialog}
         onClose={() => setShowAddSolutionDialog(false)}
         onAdd={handleAddSolution}
-        roadmapItems={planning.roadmapItems || []}
+        programItems={planning.programItems || []}
       />
 
       <SolutionDetailDialog
@@ -1089,7 +1377,7 @@ export function TransformationPlanningDetailPage() {
         }}
         onSave={handleUpdateSolution}
         solution={selectedSolution}
-        roadmapItems={planning.roadmapItems || []}
+        programItems={planning.programItems || []}
       />
 
       <CapabilityReportDialog

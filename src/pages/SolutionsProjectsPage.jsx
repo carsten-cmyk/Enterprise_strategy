@@ -109,10 +109,10 @@ export function SolutionsProjectsPage() {
     }
   };
 
-  // Get roadmap items for selected planning
-  const getRoadmapItemsForPlanning = (planningId) => {
+  // Get program items for selected planning
+  const getProgramItemsForPlanning = (planningId) => {
     const planning = plannings.find(p => p.id === planningId);
-    return planning?.roadmapItems || [];
+    return planning?.programItems || [];
   };
 
   return (
@@ -194,7 +194,7 @@ export function SolutionsProjectsPage() {
           {allSolutions.map(solution => {
             const scope = solution.scope || 'not-touched';
             const colors = getScopeColor(scope);
-            const linkedRoadmapItemsCount = solution.linkedRoadmapItems?.length || 0;
+            const linkedProgramItemsCount = solution.linkedProgramItems?.length || 0;
 
             return (
               <div
@@ -309,10 +309,10 @@ export function SolutionsProjectsPage() {
                   </div>
                 )}
 
-                {/* Linked Roadmap Items Count */}
-                {linkedRoadmapItemsCount > 0 && (
+                {/* Linked Program Items Count */}
+                {linkedProgramItemsCount > 0 && (
                   <div className={`text-xs font-medium ${colors.text} ${colors.lightBg} px-2 py-1 rounded inline-block`}>
-                    {linkedRoadmapItemsCount} linked {linkedRoadmapItemsCount === 1 ? 'roadmap item' : 'roadmap items'}
+                    {linkedProgramItemsCount} linked {linkedProgramItemsCount === 1 ? 'program item' : 'program items'}
                   </div>
                 )}
               </div>
@@ -329,7 +329,7 @@ export function SolutionsProjectsPage() {
           setSelectedPlanningId(null);
         }}
         onAdd={handleAddSolution}
-        roadmapItems={selectedPlanningId ? getRoadmapItemsForPlanning(selectedPlanningId) : []}
+        programItems={selectedPlanningId ? getProgramItemsForPlanning(selectedPlanningId) : []}
         plannings={plannings}
         currentPlanningId={selectedPlanningId}
       />
@@ -343,7 +343,7 @@ export function SolutionsProjectsPage() {
         }}
         onSave={handleUpdateSolution}
         solution={selectedSolution}
-        roadmapItems={selectedPlanningId ? getRoadmapItemsForPlanning(selectedPlanningId) : []}
+        programItems={selectedPlanningId ? getProgramItemsForPlanning(selectedPlanningId) : []}
         plannings={plannings}
         currentPlanningId={selectedPlanningId}
       />
