@@ -9,17 +9,35 @@ import {
 import { Input, Textarea, Label } from './ui/Input';
 import { Button } from './ui/Button';
 
+const SUPPORT_OPTIONS = [
+  { value: 'maintain', label: 'Maintain (Emerald)' },
+  { value: 'enhance', label: 'Enhance (Amber)' },
+  { value: 'transform', label: 'Transform (Rose)' },
+  { value: 'new-build', label: 'New Build (Blue)' },
+  { value: 'retire', label: 'Retire (Gray)' },
+  { value: 'tbd', label: 'TBD (White)' }
+];
+
+const PROGRESS_STATUS_OPTIONS = [
+  { value: 'not-started', label: 'Not Started' },
+  { value: 'in-progress', label: 'In Progress' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'on-hold', label: 'On Hold' }
+];
+
 export function AddComponentDialog({ open, onClose, onAdd, columnName }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [support, setSupport] = useState('primary');
+  const [support, setSupport] = useState('maintain');
   const [priority, setPriority] = useState('medium');
+  const [progressStatus, setProgressStatus] = useState('not-started');
 
   const handleClose = () => {
     setName('');
     setDescription('');
-    setSupport('primary');
+    setSupport('maintain');
     setPriority('medium');
+    setProgressStatus('not-started');
     onClose();
   };
 
@@ -29,7 +47,8 @@ export function AddComponentDialog({ open, onClose, onAdd, columnName }) {
       name: name.trim(),
       description: description.trim(),
       support,
-      priority
+      priority,
+      progressStatus
     });
     handleClose();
   };
@@ -74,9 +93,11 @@ export function AddComponentDialog({ open, onClose, onAdd, columnName }) {
               onChange={(e) => setSupport(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             >
-              <option value="primary">Primary function (Teal)</option>
-              <option value="secondary">Secondary function (Light Teal)</option>
-              <option value="not-touched">Not touched (Gray)</option>
+              {SUPPORT_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -90,6 +111,21 @@ export function AddComponentDialog({ open, onClose, onAdd, columnName }) {
               <option value="high">High</option>
               <option value="medium">Medium</option>
               <option value="low">Low</option>
+            </select>
+          </div>
+
+          <div>
+            <Label>Progress Status</Label>
+            <select
+              value={progressStatus}
+              onChange={(e) => setProgressStatus(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            >
+              {PROGRESS_STATUS_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>

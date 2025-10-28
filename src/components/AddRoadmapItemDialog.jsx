@@ -9,16 +9,17 @@ import {
 import { Input, Textarea, Label } from './ui/Input';
 import { Button } from './ui/Button';
 
-const SUPPORT_OPTIONS = [
-  { value: 'leverage', label: 'Maintain (Emerald)' },
-  { value: 'enhance', label: 'Uplift (Amber)' },
+const STRATEGY_OPTIONS = [
+  { value: 'maintain', label: 'Maintain (Emerald)' },
+  { value: 'enhance', label: 'Enhance (Amber)' },
   { value: 'transform', label: 'Transform (Rose)' },
-  { value: 'build', label: 'New build (Blue)' },
-  { value: 'not-touched', label: 'TBD (White)' }
+  { value: 'new-build', label: 'New Build (Blue)' },
+  { value: 'retire', label: 'Retire (Gray)' },
+  { value: 'tbd', label: 'TBD (White)' }
 ];
 
-const STATUS_OPTIONS = [
-  { value: 'planning', label: 'Planning' },
+const PROGRESS_STATUS_OPTIONS = [
+  { value: 'not-started', label: 'Not Started' },
   { value: 'in-progress', label: 'In Progress' },
   { value: 'completed', label: 'Completed' },
   { value: 'on-hold', label: 'On Hold' }
@@ -27,28 +28,59 @@ const STATUS_OPTIONS = [
 export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [scope, setScope] = useState('not-touched');
+  const [strategy, setStrategy] = useState('tbd');
   const [linkedCapabilities, setLinkedCapabilities] = useState([]);
+
+  // Assessment - using new selective inheritance field structure
+  const [selectedAsIsComponents, setSelectedAsIsComponents] = useState([]);
+  const [asIsUserNotes, setAsIsManualNotes] = useState('');
+  const [selectedToBeComponents, setSelectedToBeComponents] = useState([]);
+  const [toBeUserNotes, setToBeManualNotes] = useState('');
+  const [selectedBusinessImpactComponents, setSelectedBusinessImpactComponents] = useState([]);
+  const [businessImpactUserNotes, setBusinessImpactManualNotes] = useState('');
+  const [gaps, setGaps] = useState([]);
+
+  // Timeline
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [expectedStart, setExpectedStart] = useState('');
   const [estimatedDuration, setEstimatedDuration] = useState('');
   const [durationUnit, setDurationUnit] = useState('weeks');
+
+  // Ownership
   const [owner, setOwner] = useState('');
-  const [status, setStatus] = useState('planning');
+
+  // Classification
+  const [progressStatus, setProgressStatus] = useState('not-started');
 
   const handleClose = () => {
     setName('');
     setDescription('');
-    setScope('not-touched');
+    setStrategy('tbd');
     setLinkedCapabilities([]);
+
+    // Assessment fields
+    setSelectedAsIsComponents([]);
+    setAsIsManualNotes('');
+    setSelectedToBeComponents([]);
+    setToBeManualNotes('');
+    setSelectedBusinessImpactComponents([]);
+    setBusinessImpactManualNotes('');
+    setGaps([]);
+
+    // Timeline fields
     setStartDate('');
     setEndDate('');
     setExpectedStart('');
     setEstimatedDuration('');
     setDurationUnit('weeks');
+
+    // Ownership
     setOwner('');
-    setStatus('planning');
+
+    // Classification
+    setProgressStatus('not-started');
+
     onClose();
   };
 
@@ -57,15 +89,30 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
     onAdd({
       name: name.trim(),
       description: description.trim(),
-      scope,
+      strategy,
       linkedCapabilities,
+
+      // Assessment - new selective inheritance fields
+      selectedAsIsComponents,
+      asIsUserNotes,
+      selectedToBeComponents,
+      toBeUserNotes,
+      selectedBusinessImpactComponents,
+      businessImpactUserNotes,
+      gaps,
+
+      // Timeline
       startDate,
       endDate,
       expectedStart,
       estimatedDuration,
       durationUnit,
+
+      // Ownership
       owner: owner.trim(),
-      status
+
+      // Classification
+      progressStatus
     });
     handleClose();
   };
@@ -161,13 +208,13 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
           </div>
 
           <div>
-            <Label>Support Type</Label>
+            <Label>Strategy</Label>
             <select
-              value={scope}
-              onChange={(e) => setScope(e.target.value)}
+              value={strategy}
+              onChange={(e) => setStrategy(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             >
-              {SUPPORT_OPTIONS.map(option => (
+              {STRATEGY_OPTIONS.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -176,13 +223,13 @@ export function AddRoadmapItemDialog({ open, onClose, onAdd, capabilities = [] }
           </div>
 
           <div>
-            <Label>Status</Label>
+            <Label>Progress Status</Label>
             <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              value={progressStatus}
+              onChange={(e) => setProgressStatus(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             >
-              {STATUS_OPTIONS.map(option => (
+              {PROGRESS_STATUS_OPTIONS.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

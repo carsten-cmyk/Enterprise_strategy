@@ -19,9 +19,12 @@ const TABS = [
 ];
 
 const SUPPORT_OPTIONS = [
-  { value: 'primary', label: 'Primary function', color: 'bg-teal-600', textColor: 'text-white' },
-  { value: 'secondary', label: 'Secondary function', color: 'bg-teal-100', textColor: 'text-teal-900' },
-  { value: 'not-touched', label: 'Not touched', color: 'bg-gray-200', textColor: 'text-gray-700' }
+  { value: 'maintain', label: 'Maintain', color: 'bg-emerald-600', textColor: 'text-white' },
+  { value: 'enhance', label: 'Enhance', color: 'bg-amber-500', textColor: 'text-white' },
+  { value: 'transform', label: 'Transform', color: 'bg-rose-600', textColor: 'text-white' },
+  { value: 'new-build', label: 'New Build', color: 'bg-blue-600', textColor: 'text-white' },
+  { value: 'retire', label: 'Retire', color: 'bg-gray-600', textColor: 'text-white' },
+  { value: 'tbd', label: 'TBD', color: 'bg-slate-100', textColor: 'text-slate-700', border: 'border-2 border-slate-300' }
 ];
 
 const PRIORITY_OPTIONS = [
@@ -30,12 +33,11 @@ const PRIORITY_OPTIONS = [
   { value: 'low', label: 'Low' }
 ];
 
-const LIFECYCLE_OPTIONS = [
-  { value: 'Planning', label: 'Planning' },
-  { value: 'In Progress', label: 'In Progress' },
-  { value: 'Planned', label: 'Planned' },
-  { value: 'Active', label: 'Active' },
-  { value: 'Deprecated', label: 'Deprecated' }
+const PROGRESS_STATUS_OPTIONS = [
+  { value: 'not-started', label: 'Not Started' },
+  { value: 'in-progress', label: 'In Progress' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'on-hold', label: 'On Hold' }
 ];
 
 export function ComponentDetailDialog({ open, onClose, onSave, component, columnName }) {
@@ -50,12 +52,13 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    support: 'primary',
+    support: 'maintain',
     priority: 'medium',
+    progressStatus: 'not-started',
 
     // Assessment
-    currentState: '',
-    desiredCapability: '',
+    asIs: '',
+    toBe: '',
     businessImpact: '',
     gaps: [],
 
@@ -66,7 +69,6 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
 
     // Technical
     vendor: 'TBD',
-    lifecycleStatus: 'Planning',
     technologyStack: '',
     integrationPoints: ''
   });
@@ -77,11 +79,14 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
       setFormData({
         name: component.name || '',
         description: component.description || '',
-        support: component.support || component.scope || 'primary',
+        // Map old values to new standardized values
+        support: component.support || component.scope || 'maintain',
         priority: component.priority || 'medium',
+        progressStatus: component.progressStatus || component.lifecycleStatus || 'not-started',
 
-        currentState: component.currentState || '',
-        desiredCapability: component.desiredCapability || '',
+        // Support both old and new field names during transition
+        asIs: component.asIs || component.currentState || '',
+        toBe: component.toBe || component.desiredCapability || '',
         businessImpact: component.businessImpact || '',
         gaps: component.gaps || [],
 
@@ -90,7 +95,6 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
         businessProcess: component.businessProcess || '',
 
         vendor: component.vendor || 'TBD',
-        lifecycleStatus: component.lifecycleStatus || 'Planning',
         technologyStack: component.technologyStack || '',
         integrationPoints: component.integrationPoints || ''
       });
@@ -234,6 +238,21 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
                 </select>
               </div>
 
+              <div>
+                <Label>Progress Status</Label>
+                <select
+                  value={formData.progressStatus}
+                  onChange={(e) => updateField('progressStatus', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                >
+                  {PROGRESS_STATUS_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                 <div>
                   <Label>Latest Review</Label>
@@ -262,20 +281,20 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
               <h3 className="text-sm font-semibold text-gray-700 uppercase">Assessment</h3>
 
               <div>
-                <Label>Current State (As-Is)</Label>
+                <Label>As-Is</Label>
                 <Textarea
-                  value={formData.currentState}
-                  onChange={(value) => updateField('currentState', value)}
+                  value={formData.asIs}
+                  onChange={(value) => updateField('asIs', value)}
                   placeholder="Describe the current state of this component..."
                   rows={3}
                 />
               </div>
 
               <div>
-                <Label>Desired Capability (To-Be)</Label>
+                <Label>To-Be</Label>
                 <Textarea
-                  value={formData.desiredCapability}
-                  onChange={(value) => updateField('desiredCapability', value)}
+                  value={formData.toBe}
+                  onChange={(value) => updateField('toBe', value)}
                   placeholder="Describe the desired future capability..."
                   rows={3}
                 />
@@ -425,21 +444,6 @@ export function ComponentDetailDialog({ open, onClose, onSave, component, column
                 <p className="text-xs text-gray-500 mt-1">
                   Manage vendors in Settings
                 </p>
-              </div>
-
-              <div>
-                <Label>Lifecycle Status</Label>
-                <select
-                  value={formData.lifecycleStatus}
-                  onChange={(e) => updateField('lifecycleStatus', e.target.value)}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  {LIFECYCLE_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <div>

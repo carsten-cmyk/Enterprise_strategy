@@ -41,13 +41,22 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
     name: '',
     description: '',
     group: '',
-    currentState: '',
-    desiredState: '',
-    scope: 'not-touched',
+    strategy: 'not-touched',
     linkedRoadmapItems: [],
 
-    // Assessment
-    businessImpact: '',
+    // Assessment - using new selective inheritance field structure
+    selectedAsIsRoadmapItems: [],
+    selectedAsIsComponents: [],
+    asIsUserNotes: '',
+    selectedToBeRoadmapItems: [],
+    selectedToBeComponents: [],
+    toBeUserNotes: '',
+    selectedBusinessImpactRoadmapItems: [],
+    selectedBusinessImpactComponents: [],
+    businessImpactUserNotes: '',
+    gaps: [],
+
+    // Assessment (legacy)
     investmentEstimate: '',
 
     // Planning
@@ -60,9 +69,6 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
     businessOwner: '',
     technicalOwner: '',
     vendor: 'TBD',
-
-    // Gap Analysis
-    gaps: [],
 
     // Action Plan
     actions: [],
@@ -82,16 +88,56 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
   // Pre-fill form when editing
   useEffect(() => {
     if (solution && open) {
+      // Backward compatibility: migrate old field names to new structure
+      const migratedAsIsRoadmapItems = solution.selectedAsIsRoadmapItems
+        ? solution.selectedAsIsRoadmapItems
+        : (solution.currentState)
+          ? solution.linkedRoadmapItems || []
+          : [];
+
+      const migratedAsIsComponents = solution.selectedAsIsComponents
+        ? solution.selectedAsIsComponents
+        : [];
+
+      const migratedToBeRoadmapItems = solution.selectedToBeRoadmapItems
+        ? solution.selectedToBeRoadmapItems
+        : (solution.desiredState)
+          ? solution.linkedRoadmapItems || []
+          : [];
+
+      const migratedToBeComponents = solution.selectedToBeComponents
+        ? solution.selectedToBeComponents
+        : [];
+
+      const migratedBusinessImpactRoadmapItems = solution.selectedBusinessImpactRoadmapItems
+        ? solution.selectedBusinessImpactRoadmapItems
+        : (solution.businessImpact)
+          ? solution.linkedRoadmapItems || []
+          : [];
+
+      const migratedBusinessImpactComponents = solution.selectedBusinessImpactComponents
+        ? solution.selectedBusinessImpactComponents
+        : [];
+
       setFormData({
         name: solution.name || '',
         description: solution.description || '',
         group: solution.group || '',
-        currentState: solution.currentState || '',
-        desiredState: solution.desiredState || '',
-        scope: solution.scope || 'not-touched',
+        strategy: solution.strategy || solution.scope || 'not-touched',
         linkedRoadmapItems: solution.linkedRoadmapItems || [],
 
-        businessImpact: solution.businessImpact || '',
+        // Assessment - new selective inheritance fields
+        selectedAsIsRoadmapItems: migratedAsIsRoadmapItems,
+        selectedAsIsComponents: migratedAsIsComponents,
+        asIsUserNotes: solution.asIsUserNotes || '',
+        selectedToBeRoadmapItems: migratedToBeRoadmapItems,
+        selectedToBeComponents: migratedToBeComponents,
+        toBeUserNotes: solution.toBeUserNotes || '',
+        selectedBusinessImpactRoadmapItems: migratedBusinessImpactRoadmapItems,
+        selectedBusinessImpactComponents: migratedBusinessImpactComponents,
+        businessImpactUserNotes: solution.businessImpactUserNotes || '',
+        gaps: solution.gaps || [],
+
         investmentEstimate: solution.investmentEstimate || '',
 
         expectedStart: solution.expectedStart || solution.expectedGoLive || '',
@@ -103,7 +149,6 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
         technicalOwner: solution.technicalOwner || '',
         vendor: solution.vendor || 'TBD',
 
-        gaps: solution.gaps || [],
         actions: solution.actions || [],
 
         investmentBudget: solution.investmentBudget || '',
@@ -208,6 +253,204 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
     }));
   };
 
+  // Helper functions for selective inheritance
+
+  // Get linked roadmap items
+  const getLinkedRoadmapItems = () => {
+    return roadmapItems.filter(item =>
+      formData.linkedRoadmapItems.includes(item.id)
+    );
+  };
+
+  // Get all components from linked roadmap items
+  const getComponentsFromLinkedRoadmapItems = () => {
+    const components = [];
+    const linkedItems = getLinkedRoadmapItems();
+
+    linkedItems.forEach(item => {
+      if (item.linkedCapabilities && Array.isArray(item.linkedCapabilities)) {
+        // For now, store component info from roadmap item
+        // In a real implementation, we'd fetch the actual component objects
+        item.linkedCapabilities.forEach(capId => {
+          // Find capability in plannings
+          plannings.forEach(planning => {
+            if (planning.capabilities) {
+              planning.capabilities.forEach(cap => {
+                if (cap.id === capId && !components.find(c => c.id === cap.id)) {
+                  components.push({
+                    ...cap,
+                    sourceRoadmapItemId: item.id,
+                    sourceRoadmapItemName: item.name
+                  });
+                }
+              });
+            }
+          });
+        });
+      }
+    });
+
+    return components;
+  };
+
+  // Get roadmap items by IDs
+  const getRoadmapItemsByIds = (itemIds) => {
+    return itemIds
+      .map(id => roadmapItems.find(item => item.id === id))
+      .filter(Boolean);
+  };
+
+  // Get components by IDs
+  const getComponentsByIds = (componentIds) => {
+    const allComponents = getComponentsFromLinkedRoadmapItems();
+    return componentIds
+      .map(id => allComponents.find(comp => comp.id === id))
+      .filter(Boolean);
+  };
+
+  // Toggle functions for As-Is
+  const toggleAsIsRoadmapItem = (itemId) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedAsIsRoadmapItems: prev.selectedAsIsRoadmapItems.includes(itemId)
+        ? prev.selectedAsIsRoadmapItems.filter(id => id !== itemId)
+        : [...prev.selectedAsIsRoadmapItems, itemId]
+    }));
+  };
+
+  const toggleAsIsComponent = (componentId) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedAsIsComponents: prev.selectedAsIsComponents.includes(componentId)
+        ? prev.selectedAsIsComponents.filter(id => id !== componentId)
+        : [...prev.selectedAsIsComponents, componentId]
+    }));
+  };
+
+  // Toggle functions for To-Be
+  const toggleToBeRoadmapItem = (itemId) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedToBeRoadmapItems: prev.selectedToBeRoadmapItems.includes(itemId)
+        ? prev.selectedToBeRoadmapItems.filter(id => id !== itemId)
+        : [...prev.selectedToBeRoadmapItems, itemId]
+    }));
+  };
+
+  const toggleToBeComponent = (componentId) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedToBeComponents: prev.selectedToBeComponents.includes(componentId)
+        ? prev.selectedToBeComponents.filter(id => id !== componentId)
+        : [...prev.selectedToBeComponents, componentId]
+    }));
+  };
+
+  // Toggle functions for Business Impact
+  const toggleBusinessImpactRoadmapItem = (itemId) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedBusinessImpactRoadmapItems: prev.selectedBusinessImpactRoadmapItems.includes(itemId)
+        ? prev.selectedBusinessImpactRoadmapItems.filter(id => id !== itemId)
+        : [...prev.selectedBusinessImpactRoadmapItems, itemId]
+    }));
+  };
+
+  const toggleBusinessImpactComponent = (componentId) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedBusinessImpactComponents: prev.selectedBusinessImpactComponents.includes(componentId)
+        ? prev.selectedBusinessImpactComponents.filter(id => id !== componentId)
+        : [...prev.selectedBusinessImpactComponents, componentId]
+    }));
+  };
+
+  // Generate final As-Is text from selected sources
+  const generateFinalAsIs = () => {
+    const selectedRoadmapItems = getRoadmapItemsByIds(formData.selectedAsIsRoadmapItems);
+    const selectedComponents = getComponentsByIds(formData.selectedAsIsComponents);
+
+    const sections = [];
+
+    // Add roadmap items
+    selectedRoadmapItems.forEach(item => {
+      const asIs = item.asIs || item.currentState || 'Not documented';
+      sections.push(`**[Roadmap Item] ${item.name}**\n\n${asIs}`);
+    });
+
+    // Add components
+    selectedComponents.forEach(comp => {
+      const asIs = comp.asIs || comp.currentState || 'Not documented';
+      sections.push(`**[Component] ${comp.displayName || comp.name}**\n\n${asIs}`);
+    });
+
+    const combinedSections = sections.join('\n\n---\n\n');
+
+    const manualSection = formData.asIsUserNotes.trim()
+      ? `\n\n---\n\n**Additional Notes**\n\n${formData.asIsUserNotes}`
+      : '';
+
+    return combinedSections + manualSection;
+  };
+
+  // Generate final To-Be text
+  const generateFinalToBe = () => {
+    const selectedRoadmapItems = getRoadmapItemsByIds(formData.selectedToBeRoadmapItems);
+    const selectedComponents = getComponentsByIds(formData.selectedToBeComponents);
+
+    const sections = [];
+
+    // Add roadmap items
+    selectedRoadmapItems.forEach(item => {
+      const toBe = item.toBe || item.desiredCapability || 'Not documented';
+      sections.push(`**[Roadmap Item] ${item.name}**\n\n${toBe}`);
+    });
+
+    // Add components
+    selectedComponents.forEach(comp => {
+      const toBe = comp.toBe || comp.desiredCapability || 'Not documented';
+      sections.push(`**[Component] ${comp.displayName || comp.name}**\n\n${toBe}`);
+    });
+
+    const combinedSections = sections.join('\n\n---\n\n');
+
+    const manualSection = formData.toBeUserNotes.trim()
+      ? `\n\n---\n\n**Additional Notes**\n\n${formData.toBeUserNotes}`
+      : '';
+
+    return combinedSections + manualSection;
+  };
+
+  // Generate final Business Impact text
+  const generateFinalBusinessImpact = () => {
+    const selectedRoadmapItems = getRoadmapItemsByIds(formData.selectedBusinessImpactRoadmapItems);
+    const selectedComponents = getComponentsByIds(formData.selectedBusinessImpactComponents);
+
+    const sections = [];
+
+    // Add roadmap items with business impact
+    selectedRoadmapItems
+      .filter(item => item.businessImpact)
+      .forEach(item => {
+        sections.push(`**[Roadmap Item] ${item.name}**\n\n${item.businessImpact}`);
+      });
+
+    // Add components with business impact
+    selectedComponents
+      .filter(comp => comp.businessImpact)
+      .forEach(comp => {
+        sections.push(`**[Component] ${comp.displayName || comp.name}**\n\n${comp.businessImpact}`);
+      });
+
+    const combinedSections = sections.join('\n\n---\n\n');
+
+    const manualSection = formData.businessImpactUserNotes.trim()
+      ? `\n\n---\n\n**Additional Impact**\n\n${formData.businessImpactUserNotes}`
+      : '';
+
+    return combinedSections + manualSection;
+  };
+
   // Get all available solutions from all plannings (excluding current solution)
   const getAvailableSolutions = () => {
     const allSolutions = [];
@@ -309,9 +552,9 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => updateField('scope', option.value)}
+                      onClick={() => updateField('strategy', option.value)}
                       className={`px-4 py-2 rounded font-medium text-sm transition-all ${option.color} ${option.textColor} ${option.border || ''} ${
-                        formData.scope === option.value
+                        formData.strategy === option.value
                           ? 'ring-2 ring-offset-2 ring-gray-600'
                           : 'opacity-70 hover:opacity-100'
                       }`}
@@ -348,31 +591,357 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
 
           {/* Assessment Tab */}
           {activeTab === 'assessment' && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase">Assessment</h3>
+            <div className="space-y-8">
+              {/* AS-IS SECTION */}
+              <div className="pb-8 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">As-Is (Current State)</h3>
 
-              <div>
-                <Label>Current State (As-Is)</Label>
-                <Textarea
-                  value={formData.currentState}
-                  onChange={(value) => updateField('currentState', value)}
-                  placeholder="Describe the current state before this solution..."
-                  rows={3}
-                />
+                {getLinkedRoadmapItems().length === 0 ? (
+                  <p className="text-gray-500 italic text-sm p-4 bg-gray-50 rounded-lg">
+                    No roadmap items linked. Go to "Classification" tab to link roadmap items first.
+                  </p>
+                ) : (
+                  <>
+                    {/* Roadmap Items Selection */}
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Label>Select Roadmap Items to Include:</Label>
+                        {formData.selectedAsIsRoadmapItems.length > 0 && (
+                          <span className="px-2 py-1 bg-teal-600 text-white rounded-full text-xs font-medium">
+                            {formData.selectedAsIsRoadmapItems.length} selected
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-3">
+                        {getLinkedRoadmapItems().map(item => (
+                          <label
+                            key={item.id}
+                            className={`flex gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                              formData.selectedAsIsRoadmapItems.includes(item.id)
+                                ? 'border-teal-600 bg-teal-50'
+                                : 'border-gray-200 hover:border-teal-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.selectedAsIsRoadmapItems.includes(item.id)}
+                              onChange={() => toggleAsIsRoadmapItem(item.id)}
+                              className="w-5 h-5 text-teal-600 rounded focus:ring-2 focus:ring-teal-500 mt-0.5"
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900 mb-1">[Roadmap Item] {item.name}</div>
+                              {(item.asIs || item.currentState) ? (
+                                <p className="text-sm text-gray-600 line-clamp-3">
+                                  {item.asIs || item.currentState}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-gray-400 italic">No As-Is documented</p>
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Components Selection */}
+                    {getComponentsFromLinkedRoadmapItems().length > 0 && (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Label>Select Components to Include:</Label>
+                          {formData.selectedAsIsComponents.length > 0 && (
+                            <span className="px-2 py-1 bg-teal-600 text-white rounded-full text-xs font-medium">
+                              {formData.selectedAsIsComponents.length} selected
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          {getComponentsFromLinkedRoadmapItems().map(comp => (
+                            <label
+                              key={comp.id}
+                              className={`flex gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                formData.selectedAsIsComponents.includes(comp.id)
+                                  ? 'border-teal-600 bg-teal-50'
+                                  : 'border-gray-200 hover:border-teal-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={formData.selectedAsIsComponents.includes(comp.id)}
+                                onChange={() => toggleAsIsComponent(comp.id)}
+                                className="w-5 h-5 text-teal-600 rounded focus:ring-2 focus:ring-teal-500 mt-0.5"
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900 mb-1">
+                                  [Component] {comp.displayName || comp.name}
+                                </div>
+                                <div className="text-xs text-gray-500 mb-1">
+                                  From: {comp.sourceRoadmapItemName}
+                                </div>
+                                {(comp.asIs || comp.currentState) ? (
+                                  <p className="text-sm text-gray-600 line-clamp-3">
+                                    {comp.asIs || comp.currentState}
+                                  </p>
+                                ) : (
+                                  <p className="text-sm text-gray-400 italic">No As-Is documented</p>
+                                )}
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preview of Selected Sources */}
+                    {(formData.selectedAsIsRoadmapItems.length > 0 || formData.selectedAsIsComponents.length > 0) && (
+                      <div className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                        <Label className="mb-3 block">Selected Sources Preview:</Label>
+                        <div className="space-y-3">
+                          {getRoadmapItemsByIds(formData.selectedAsIsRoadmapItems).map(item => (
+                            <div key={item.id} className="bg-white border border-gray-200 rounded-md p-3">
+                              <div className="flex justify-between items-start mb-2 pb-2 border-b border-gray-100">
+                                <strong className="text-teal-700 text-sm">[Roadmap Item] {item.name}</strong>
+                                <button
+                                  onClick={() => toggleAsIsRoadmapItem(item.id)}
+                                  className="text-red-500 hover:text-red-700 text-lg leading-none px-1"
+                                  title="Remove from selection"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                              <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                                {item.asIs || item.currentState || <em className="text-gray-400">Not documented</em>}
+                              </div>
+                            </div>
+                          ))}
+                          {getComponentsByIds(formData.selectedAsIsComponents).map(comp => (
+                            <div key={comp.id} className="bg-white border border-gray-200 rounded-md p-3">
+                              <div className="flex justify-between items-start mb-2 pb-2 border-b border-gray-100">
+                                <strong className="text-teal-700 text-sm">[Component] {comp.displayName || comp.name}</strong>
+                                <button
+                                  onClick={() => toggleAsIsComponent(comp.id)}
+                                  className="text-red-500 hover:text-red-700 text-lg leading-none px-1"
+                                  title="Remove from selection"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                              <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                                {comp.asIs || comp.currentState || <em className="text-gray-400">Not documented</em>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Manual Notes */}
+                    <div className="mb-4">
+                      <Label className="mb-2 block">Additional As-Is Notes (Optional):</Label>
+                      <Textarea
+                        value={formData.asIsUserNotes}
+                        onChange={(value) => updateField('asIsUserNotes', value)}
+                        placeholder="Add any additional context not covered by selected sources..."
+                        rows={3}
+                      />
+                      <p className="text-xs text-gray-500 mt-1 italic">
+                        These notes will be appended after the selected sources
+                      </p>
+                    </div>
+
+                    {/* Final Combined Preview */}
+                    {(formData.selectedAsIsRoadmapItems.length > 0 || formData.selectedAsIsComponents.length > 0 || formData.asIsUserNotes.trim()) && (
+                      <div className="p-4 bg-gray-50 border-2 border-gray-300 rounded-lg">
+                        <Label className="mb-2 block">Final As-Is (Read-only Preview):</Label>
+                        <div className="bg-white p-4 border border-gray-200 rounded-md text-sm text-gray-700 whitespace-pre-wrap max-h-96 overflow-y-auto">
+                          {generateFinalAsIs()}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2 italic">
+                          This is how the As-Is will appear in reports and to users
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
-              <div>
-                <Label>Desired State (To-Be)</Label>
-                <Textarea
-                  value={formData.desiredState}
-                  onChange={(value) => updateField('desiredState', value)}
-                  placeholder="Describe the desired future state after implementation..."
-                  rows={3}
-                />
+              {/* TO-BE SECTION */}
+              <div className="pb-8 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">To-Be (Desired State)</h3>
+
+                {getLinkedRoadmapItems().length === 0 ? (
+                  <p className="text-gray-500 italic text-sm p-4 bg-gray-50 rounded-lg">
+                    No roadmap items linked. Go to "Classification" tab to link roadmap items first.
+                  </p>
+                ) : (
+                  <>
+                    {/* Roadmap Items Selection */}
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Label>Select Roadmap Items to Include:</Label>
+                        {formData.selectedToBeRoadmapItems.length > 0 && (
+                          <span className="px-2 py-1 bg-teal-600 text-white rounded-full text-xs font-medium">
+                            {formData.selectedToBeRoadmapItems.length} selected
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-3">
+                        {getLinkedRoadmapItems().map(item => (
+                          <label
+                            key={item.id}
+                            className={`flex gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                              formData.selectedToBeRoadmapItems.includes(item.id)
+                                ? 'border-teal-600 bg-teal-50'
+                                : 'border-gray-200 hover:border-teal-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.selectedToBeRoadmapItems.includes(item.id)}
+                              onChange={() => toggleToBeRoadmapItem(item.id)}
+                              className="w-5 h-5 text-teal-600 rounded focus:ring-2 focus:ring-teal-500 mt-0.5"
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900 mb-1">[Roadmap Item] {item.name}</div>
+                              {(item.toBe || item.desiredCapability) ? (
+                                <p className="text-sm text-gray-600 line-clamp-3">
+                                  {item.toBe || item.desiredCapability}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-gray-400 italic">No To-Be documented</p>
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Components Selection */}
+                    {getComponentsFromLinkedRoadmapItems().length > 0 && (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Label>Select Components to Include:</Label>
+                          {formData.selectedToBeComponents.length > 0 && (
+                            <span className="px-2 py-1 bg-teal-600 text-white rounded-full text-xs font-medium">
+                              {formData.selectedToBeComponents.length} selected
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          {getComponentsFromLinkedRoadmapItems().map(comp => (
+                            <label
+                              key={comp.id}
+                              className={`flex gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                formData.selectedToBeComponents.includes(comp.id)
+                                  ? 'border-teal-600 bg-teal-50'
+                                  : 'border-gray-200 hover:border-teal-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={formData.selectedToBeComponents.includes(comp.id)}
+                                onChange={() => toggleToBeComponent(comp.id)}
+                                className="w-5 h-5 text-teal-600 rounded focus:ring-2 focus:ring-teal-500 mt-0.5"
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900 mb-1">
+                                  [Component] {comp.displayName || comp.name}
+                                </div>
+                                <div className="text-xs text-gray-500 mb-1">
+                                  From: {comp.sourceRoadmapItemName}
+                                </div>
+                                {(comp.toBe || comp.desiredCapability) ? (
+                                  <p className="text-sm text-gray-600 line-clamp-3">
+                                    {comp.toBe || comp.desiredCapability}
+                                  </p>
+                                ) : (
+                                  <p className="text-sm text-gray-400 italic">No To-Be documented</p>
+                                )}
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preview of Selected Sources */}
+                    {(formData.selectedToBeRoadmapItems.length > 0 || formData.selectedToBeComponents.length > 0) && (
+                      <div className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                        <Label className="mb-3 block">Selected Sources Preview:</Label>
+                        <div className="space-y-3">
+                          {getRoadmapItemsByIds(formData.selectedToBeRoadmapItems).map(item => (
+                            <div key={item.id} className="bg-white border border-gray-200 rounded-md p-3">
+                              <div className="flex justify-between items-start mb-2 pb-2 border-b border-gray-100">
+                                <strong className="text-teal-700 text-sm">[Roadmap Item] {item.name}</strong>
+                                <button
+                                  onClick={() => toggleToBeRoadmapItem(item.id)}
+                                  className="text-red-500 hover:text-red-700 text-lg leading-none px-1"
+                                  title="Remove from selection"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                              <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                                {item.toBe || item.desiredCapability || <em className="text-gray-400">Not documented</em>}
+                              </div>
+                            </div>
+                          ))}
+                          {getComponentsByIds(formData.selectedToBeComponents).map(comp => (
+                            <div key={comp.id} className="bg-white border border-gray-200 rounded-md p-3">
+                              <div className="flex justify-between items-start mb-2 pb-2 border-b border-gray-100">
+                                <strong className="text-teal-700 text-sm">[Component] {comp.displayName || comp.name}</strong>
+                                <button
+                                  onClick={() => toggleToBeComponent(comp.id)}
+                                  className="text-red-500 hover:text-red-700 text-lg leading-none px-1"
+                                  title="Remove from selection"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                              <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                                {comp.toBe || comp.desiredCapability || <em className="text-gray-400">Not documented</em>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Manual Notes */}
+                    <div className="mb-4">
+                      <Label className="mb-2 block">Additional To-Be Notes (Optional):</Label>
+                      <Textarea
+                        value={formData.toBeUserNotes}
+                        onChange={(value) => updateField('toBeUserNotes', value)}
+                        placeholder="Add any additional context not covered by selected sources..."
+                        rows={3}
+                      />
+                      <p className="text-xs text-gray-500 mt-1 italic">
+                        These notes will be appended after the selected sources
+                      </p>
+                    </div>
+
+                    {/* Final Combined Preview */}
+                    {(formData.selectedToBeRoadmapItems.length > 0 || formData.selectedToBeComponents.length > 0 || formData.toBeUserNotes.trim()) && (
+                      <div className="p-4 bg-gray-50 border-2 border-gray-300 rounded-lg">
+                        <Label className="mb-2 block">Final To-Be (Read-only Preview):</Label>
+                        <div className="bg-white p-4 border border-gray-200 rounded-md text-sm text-gray-700 whitespace-pre-wrap max-h-96 overflow-y-auto">
+                          {generateFinalToBe()}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2 italic">
+                          This is how the To-Be will appear in reports and to users
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
-              {/* Gap Analysis */}
-              <div className="pt-4 border-t border-gray-200">
+              {/* GAP ANALYSIS SECTION */}
+              <div className="pb-8 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-3">
                   <Label>Gap Analysis</Label>
                   <Button
@@ -416,14 +985,177 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, roadmapI
                 )}
               </div>
 
+              {/* BUSINESS IMPACT SECTION */}
               <div>
-                <Label>Business Impact</Label>
-                <Textarea
-                  value={formData.businessImpact}
-                  onChange={(value) => updateField('businessImpact', value)}
-                  placeholder="Describe the expected business impact and benefits..."
-                  rows={4}
-                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Impact</h3>
+
+                {getLinkedRoadmapItems().length === 0 ? (
+                  <p className="text-gray-500 italic text-sm p-4 bg-gray-50 rounded-lg">
+                    No roadmap items linked. Go to "Classification" tab to link roadmap items first.
+                  </p>
+                ) : (
+                  <>
+                    {/* Roadmap Items Selection */}
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Label>Select Roadmap Items to Include:</Label>
+                        {formData.selectedBusinessImpactRoadmapItems.length > 0 && (
+                          <span className="px-2 py-1 bg-teal-600 text-white rounded-full text-xs font-medium">
+                            {formData.selectedBusinessImpactRoadmapItems.length} selected
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-3">
+                        {getLinkedRoadmapItems()
+                          .filter(item => item.businessImpact)
+                          .map(item => (
+                            <label
+                              key={item.id}
+                              className={`flex gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                formData.selectedBusinessImpactRoadmapItems.includes(item.id)
+                                  ? 'border-teal-600 bg-teal-50'
+                                  : 'border-gray-200 hover:border-teal-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={formData.selectedBusinessImpactRoadmapItems.includes(item.id)}
+                                onChange={() => toggleBusinessImpactRoadmapItem(item.id)}
+                                className="w-5 h-5 text-teal-600 rounded focus:ring-2 focus:ring-teal-500 mt-0.5"
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900 mb-1">[Roadmap Item] {item.name}</div>
+                                <p className="text-sm text-gray-600 line-clamp-3">{item.businessImpact}</p>
+                              </div>
+                            </label>
+                          ))}
+                      </div>
+                      {getLinkedRoadmapItems().filter(item => item.businessImpact).length === 0 && (
+                        <p className="text-sm text-gray-500 italic">No linked roadmap items have business impact documented.</p>
+                      )}
+                    </div>
+
+                    {/* Components Selection */}
+                    {getComponentsFromLinkedRoadmapItems().filter(comp => comp.businessImpact).length > 0 && (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Label>Select Components to Include:</Label>
+                          {formData.selectedBusinessImpactComponents.length > 0 && (
+                            <span className="px-2 py-1 bg-teal-600 text-white rounded-full text-xs font-medium">
+                              {formData.selectedBusinessImpactComponents.length} selected
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          {getComponentsFromLinkedRoadmapItems()
+                            .filter(comp => comp.businessImpact)
+                            .map(comp => (
+                              <label
+                                key={comp.id}
+                                className={`flex gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                  formData.selectedBusinessImpactComponents.includes(comp.id)
+                                    ? 'border-teal-600 bg-teal-50'
+                                    : 'border-gray-200 hover:border-teal-600 hover:bg-gray-50'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={formData.selectedBusinessImpactComponents.includes(comp.id)}
+                                  onChange={() => toggleBusinessImpactComponent(comp.id)}
+                                  className="w-5 h-5 text-teal-600 rounded focus:ring-2 focus:ring-teal-500 mt-0.5"
+                                />
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900 mb-1">
+                                    [Component] {comp.displayName || comp.name}
+                                  </div>
+                                  <div className="text-xs text-gray-500 mb-1">
+                                    From: {comp.sourceRoadmapItemName}
+                                  </div>
+                                  <p className="text-sm text-gray-600 line-clamp-3">{comp.businessImpact}</p>
+                                </div>
+                              </label>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preview of Selected Sources */}
+                    {(formData.selectedBusinessImpactRoadmapItems.length > 0 || formData.selectedBusinessImpactComponents.length > 0) && (
+                      <div className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                        <Label className="mb-3 block">Selected Sources Preview:</Label>
+                        <div className="space-y-3">
+                          {getRoadmapItemsByIds(formData.selectedBusinessImpactRoadmapItems)
+                            .filter(item => item.businessImpact)
+                            .map(item => (
+                              <div key={item.id} className="bg-white border border-gray-200 rounded-md p-3">
+                                <div className="flex justify-between items-start mb-2 pb-2 border-b border-gray-100">
+                                  <strong className="text-teal-700 text-sm">[Roadmap Item] {item.name}</strong>
+                                  <button
+                                    onClick={() => toggleBusinessImpactRoadmapItem(item.id)}
+                                    className="text-red-500 hover:text-red-700 text-lg leading-none px-1"
+                                    title="Remove from selection"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                                <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                                  {item.businessImpact}
+                                </div>
+                              </div>
+                            ))}
+                          {getComponentsByIds(formData.selectedBusinessImpactComponents)
+                            .filter(comp => comp.businessImpact)
+                            .map(comp => (
+                              <div key={comp.id} className="bg-white border border-gray-200 rounded-md p-3">
+                                <div className="flex justify-between items-start mb-2 pb-2 border-b border-gray-100">
+                                  <strong className="text-teal-700 text-sm">[Component] {comp.displayName || comp.name}</strong>
+                                  <button
+                                    onClick={() => toggleBusinessImpactComponent(comp.id)}
+                                    className="text-red-500 hover:text-red-700 text-lg leading-none px-1"
+                                    title="Remove from selection"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                                <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                                  {comp.businessImpact}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Manual Notes */}
+                    <div className="mb-4">
+                      <Label className="mb-2 block">Additional Business Impact Notes (Optional):</Label>
+                      <Textarea
+                        value={formData.businessImpactUserNotes}
+                        onChange={(value) => updateField('businessImpactUserNotes', value)}
+                        placeholder="Add any additional business impact not covered by selected sources..."
+                        rows={3}
+                      />
+                      <p className="text-xs text-gray-500 mt-1 italic">
+                        These notes will be appended after the selected sources
+                      </p>
+                    </div>
+
+                    {/* Final Combined Preview */}
+                    {(formData.selectedBusinessImpactRoadmapItems.length > 0 || formData.selectedBusinessImpactComponents.length > 0 || formData.businessImpactUserNotes.trim()) && (
+                      <div className="p-4 bg-gray-50 border-2 border-gray-300 rounded-lg">
+                        <Label className="mb-2 block">Final Business Impact (Read-only Preview):</Label>
+                        <div className="bg-white p-4 border border-gray-200 rounded-md text-sm text-gray-700 whitespace-pre-wrap max-h-96 overflow-y-auto">
+                          {generateFinalBusinessImpact()}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2 italic">
+                          This is how the Business Impact will appear in reports and to users
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           )}

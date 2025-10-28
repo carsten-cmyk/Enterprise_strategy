@@ -41,13 +41,22 @@ export function AddSolutionDialog({ open, onClose, onAdd, roadmapItems = [], pla
     name: '',
     description: '',
     group: '',
-    currentState: '',
-    desiredState: '',
-    scope: 'not-touched',
+    strategy: 'not-touched',
     linkedRoadmapItems: [],
 
-    // Assessment
-    businessImpact: '',
+    // Assessment - using new selective inheritance field structure
+    selectedAsIsRoadmapItems: [],
+    selectedAsIsComponents: [],
+    asIsUserNotes: '',
+    selectedToBeRoadmapItems: [],
+    selectedToBeComponents: [],
+    toBeUserNotes: '',
+    selectedBusinessImpactRoadmapItems: [],
+    selectedBusinessImpactComponents: [],
+    businessImpactUserNotes: '',
+    gaps: [],
+
+    // Assessment (legacy)
     investmentEstimate: '',
 
     // Planning
@@ -60,9 +69,6 @@ export function AddSolutionDialog({ open, onClose, onAdd, roadmapItems = [], pla
     businessOwner: '',
     technicalOwner: '',
     vendor: 'TBD',
-
-    // Gap Analysis
-    gaps: [],
 
     // Action Plan
     actions: [],
@@ -84,26 +90,45 @@ export function AddSolutionDialog({ open, onClose, onAdd, roadmapItems = [], pla
       name: '',
       description: '',
       group: '',
-      currentState: '',
-      desiredState: '',
-      scope: 'not-touched',
+      strategy: 'not-touched',
       linkedRoadmapItems: [],
-      businessImpact: '',
+
+      // Assessment fields
+      selectedAsIsRoadmapItems: [],
+      selectedAsIsComponents: [],
+      asIsUserNotes: '',
+      selectedToBeRoadmapItems: [],
+      selectedToBeComponents: [],
+      toBeUserNotes: '',
+      selectedBusinessImpactRoadmapItems: [],
+      selectedBusinessImpactComponents: [],
+      businessImpactUserNotes: '',
+      gaps: [],
+
       investmentEstimate: '',
+
+      // Planning
       expectedStart: '',
       estimatedDuration: '',
       durationUnit: 'weeks',
       dependencies: [],
+
+      // Ownership
       businessOwner: '',
       technicalOwner: '',
       vendor: 'TBD',
-      gaps: [],
+
+      // Actions
       actions: [],
+
+      // Budget
       investmentBudget: '',
       annualLicenseCost: '',
       annualMaintenance: '',
       latestReview: '',
       nextReview: '',
+
+      // Classification
       domain: '',
       projectGroup: ''
     });
@@ -293,9 +318,9 @@ export function AddSolutionDialog({ open, onClose, onAdd, roadmapItems = [], pla
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => updateField('scope', option.value)}
+                      onClick={() => updateField('strategy', option.value)}
                       className={`px-4 py-2 rounded font-medium text-sm transition-all ${option.color} ${option.textColor} ${option.border || ''} ${
-                        formData.scope === option.value
+                        formData.strategy === option.value
                           ? 'ring-2 ring-offset-2 ring-gray-600'
                           : 'opacity-70 hover:opacity-100'
                       }`}
