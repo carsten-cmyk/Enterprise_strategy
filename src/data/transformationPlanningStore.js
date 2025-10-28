@@ -57,22 +57,12 @@ export function useTransformationPlanning() {
         planningId,
         name: `${name} Program`,
         executiveSummary: '',
-        strategicRationale: '',
         businessCase: '',
-        successCriteria: '',
-        // Calculated metrics (will be updated from program items)
-        totalBudget: 0,
-        overallProgress: 0,
-        startDate: null,
-        endDate: null,
-        totalGaps: 0,
-        gapsAddressed: 0,
         createdAt: now,
         updatedAt: now
       },
       level0Columns: [],
-      programItems: [],  // NEW - replaces programItems
-      programItems: [],  // Keep for backward compatibility during migration
+      programItems: [],
       solutions: []
     };
     setPlannings([...plannings, newPlanning]);
@@ -646,6 +636,73 @@ export function useTransformationPlanning() {
     }));
   };
 
+  // Calculate Program metrics on-demand
+  const calculateProgramMetrics = (planning) => {
+    const items = planning?.programItems || [];
+
+    // Total budget
+    const totalBudget = items.reduce((sum, item) => sum + (parseFloat(item.estimatedBudget) || 0), 0);
+
+    // Start date (earliest)
+    const startDates = items.map(i => i.startDate).filter(Boolean);
+    const startDate = startDates.length > 0 ? startDates.sort()[0] : null;
+
+    // End date (latest calculated from start + duration)
+    const endDates = items.map(item => {
+      if (!item.startDate || !item.estimatedDuration) return null;
+      const start = new Date(item.startDate);
+      const duration = parseFloat(item.estimatedDuration) || 0;
+      const unit = item.durationUnit || 'weeks';
+
+      let daysToAdd = 0;
+      if (unit === 'hours') daysToAdd = Math.ceil(duration / 8);
+      else if (unit === 'days') daysToAdd = duration;
+      else if (unit === 'weeks') daysToAdd = duration * 7;
+      else if (unit === 'months') daysToAdd = duration * 30;
+
+      const end = new Date(start);
+      end.setDate(end.getDate() + daysToAdd);
+      return end.toISOString().split('T')[0];
+    }).filter(Boolean);
+
+    const endDate = endDates.length > 0 ? endDates.sort().reverse()[0] : null;
+
+    // Item count by status
+    const itemCountByStatus = items.reduce((counts, item) => {
+      const status = item.progressStatus || 'not-started';
+      counts[status] = (counts[status] || 0) + 1;
+      counts.total = (counts.total || 0) + 1;
+      return counts;
+    }, { planning: 0, 'in-progress': 0, 'on-hold': 0, completed: 0, 'not-started': 0, total: 0 });
+
+    // Gaps addressed
+    const allGaps = new Set();
+    (planning?.level0Columns || []).forEach(col => {
+      (col.components || []).forEach(comp => {
+        (comp.gaps || []).forEach(gap => allGaps.add(gap.id || gap));
+        (comp.subcomponents || []).forEach(sub => {
+          (sub.gaps || []).forEach(gap => allGaps.add(gap.id || gap));
+        });
+      });
+    });
+
+    const addressedGaps = new Set();
+    items.forEach(item => {
+      (item.selectedGaps || []).forEach(gapId => addressedGaps.add(gapId));
+    });
+
+    return {
+      totalBudget,
+      startDate,
+      endDate,
+      itemCountByStatus,
+      gapsAddressed: {
+        addressed: addressedGaps.size,
+        total: allGaps.size
+      }
+    };
+  };
+
   return {
     plannings,
     createPlanning,
@@ -664,6 +721,7 @@ export function useTransformationPlanning() {
     deleteSubcomponent,
     // Program operations
     updateProgram,
+    calculateProgramMetrics,
     addProgramItem,
     updateProgramItem,
     deleteProgramItem,

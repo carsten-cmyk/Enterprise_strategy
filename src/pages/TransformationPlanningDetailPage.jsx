@@ -11,6 +11,8 @@ import { ProgramItemDetailDialog } from '../components/ProgramItemDetailDialog';
 import { AddSolutionDialog } from '../components/AddSolutionDialog';
 import { SolutionDetailDialog } from '../components/SolutionDetailDialog';
 import { CapabilityReportDialog } from '../components/CapabilityReportDialog';
+import { ProgramOverview } from '../components/ProgramOverview';
+import { EditProgramOverviewDialog } from '../components/EditProgramOverviewDialog';
 import { useTransformationPlanning } from '../data/transformationPlanningStore';
 import { seedPlanningData } from '../utils/seedData';
 
@@ -30,6 +32,7 @@ export function TransformationPlanningDetailPage() {
   const [showAddSolutionDialog, setShowAddSolutionDialog] = useState(false);
   const [showSolutionDetailDialog, setShowSolutionDetailDialog] = useState(false);
   const [showCapabilityReportDialog, setShowCapabilityReportDialog] = useState(false);
+  const [showEditProgramOverviewDialog, setShowEditProgramOverviewDialog] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState(null);
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [selectedComponentPath, setSelectedComponentPath] = useState([]);
@@ -51,6 +54,7 @@ export function TransformationPlanningDetailPage() {
     updateSubcomponent,
     updateBusinessGoal,
     updateProgram,
+    calculateProgramMetrics,
     // addProgramItem,
     // updateProgramItem,
     // deleteProgramItem,
@@ -63,6 +67,7 @@ export function TransformationPlanningDetailPage() {
   } = useTransformationPlanning();
 
   const planning = getPlanning(id);
+  const programMetrics = planning ? calculateProgramMetrics(planning) : null;
 
   // Helper function to collect all components from all level0 columns (including nested subcomponents)
   const getAllComponents = () => {
@@ -569,6 +574,15 @@ export function TransformationPlanningDetailPage() {
     setShowCapabilityReportDialog(true);
   };
 
+  // Program Overview handlers
+  const handleEditProgramOverview = () => {
+    setShowEditProgramOverviewDialog(true);
+  };
+
+  const handleSaveProgramOverview = (updates) => {
+    updateProgram(id, updates);
+  };
+
   return (
     <div className="p-8">
       {/* Header with back button */}
@@ -811,6 +825,15 @@ export function TransformationPlanningDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Program Overview Section */}
+      {programMetrics && (
+        <ProgramOverview
+          planning={planning}
+          metrics={programMetrics}
+          onEdit={handleEditProgramOverview}
+        />
+      )}
 
       {/* Program Items Section */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
@@ -1388,6 +1411,13 @@ export function TransformationPlanningDetailPage() {
         }}
         capability={selectedCapabilityForReport}
         planningName={planning.name}
+      />
+
+      <EditProgramOverviewDialog
+        open={showEditProgramOverviewDialog}
+        onClose={() => setShowEditProgramOverviewDialog(false)}
+        program={planning?.program}
+        onSave={handleSaveProgramOverview}
       />
     </div>
   );
