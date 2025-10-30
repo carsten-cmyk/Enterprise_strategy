@@ -327,6 +327,7 @@ export function useTransformationPlanning() {
           programId: p.programId,
           name: programItem.name,
           description: programItem.description || '',
+          strategy: programItem.strategy || 'tbd',
           progressStatus: programItem.progressStatus || 'not-started',
           progress: programItem.progress || 0,
 
@@ -340,7 +341,7 @@ export function useTransformationPlanning() {
           currency: programItem.currency || 'DKK',
 
           // Links
-          linkedComponents: programItem.linkedComponents || [],
+          linkedCapabilities: programItem.linkedCapabilities || programItem.linkedComponents || [],
 
           // Assessment (selective inheritance structure)
           selectedAsIsComponents: programItem.selectedAsIsComponents || [],
