@@ -13,7 +13,7 @@ import { useSettings } from '../data/settingsStore';
 
 const TABS = [
   { id: 'basic', label: 'Basic Info' },
-  { id: 'assessment', label: 'Assessment' },
+  { id: 'assessment', label: 'Analysis' },
   { id: 'planning', label: 'Time & Schedule' },
   { id: 'ownership', label: 'Ownership' },
   { id: 'budget', label: 'Budget' },
@@ -43,6 +43,10 @@ export function AddSolutionDialog({ open, onClose, onAdd, programItems = [], pla
     group: '',
     strategy: 'not-touched',
     linkedProgramItems: [],
+
+    // NEW: Context fields from Planning/Program
+    businessGoal: '',
+    businessCase: '',
 
     // Assessment - using new selective inheritance field structure
     selectedAsIsProgramItems: [],
@@ -92,6 +96,10 @@ export function AddSolutionDialog({ open, onClose, onAdd, programItems = [], pla
       group: '',
       strategy: 'not-touched',
       linkedProgramItems: [],
+
+      // NEW: Context fields
+      businessGoal: '',
+      businessCase: '',
 
       // Assessment fields
       selectedAsIsProgramItems: [],
@@ -311,6 +319,35 @@ export function AddSolutionDialog({ open, onClose, onAdd, programItems = [], pla
                 />
               </div>
 
+              <div className="border-t border-gray-200 pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Context from Planning</h4>
+                <p className="text-xs text-gray-500 mb-3">
+                  These fields are copied from the Planning session and can be edited for this specific solution.
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>Business Goal</Label>
+                    <Textarea
+                      value={formData.businessGoal}
+                      onChange={(value) => updateField('businessGoal', value)}
+                      placeholder="Copy of the business goal from Planning (editable)..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Business Case</Label>
+                    <Textarea
+                      value={formData.businessCase}
+                      onChange={(value) => updateField('businessCase', value)}
+                      placeholder="Copy of the business case from Program (editable)..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <Label>Strategy</Label>
                 <div className="flex flex-wrap gap-3 mt-2">
@@ -355,84 +392,116 @@ export function AddSolutionDialog({ open, onClose, onAdd, programItems = [], pla
             </div>
           )}
 
-          {/* Assessment Tab */}
+          {/* Analysis Tab */}
           {activeTab === 'assessment' && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase">Assessment</h3>
+            <div className="space-y-6">
+              {/* SECTION B: Business Context */}
+              <div className="pb-6 border-b border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-700 uppercase mb-4">Business Context</h3>
 
-              <div>
-                <Label>Current State (As-Is)</Label>
-                <Textarea
-                  value={formData.currentState}
-                  onChange={(value) => updateField('currentState', value)}
-                  placeholder="Describe the current state before this solution..."
-                  rows={3}
-                />
-              </div>
+                <div className="space-y-4">
+                  <div>
+                    <Label>🎯 Business Goal</Label>
+                    <Textarea
+                      value={formData.businessGoal}
+                      onChange={(value) => updateField('businessGoal', value)}
+                      placeholder="Describe the business goal for this solution/project..."
+                      rows={4}
+                    />
+                  </div>
 
-              <div>
-                <Label>Desired State (To-Be)</Label>
-                <Textarea
-                  value={formData.desiredState}
-                  onChange={(value) => updateField('desiredState', value)}
-                  placeholder="Describe the desired future state after implementation..."
-                  rows={3}
-                />
-              </div>
-
-              {/* Gap Analysis */}
-              <div className="pt-4 border-t border-gray-200">
-                <div className="flex items-center justify-between mb-3">
-                  <Label>Gap Analysis</Label>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={addGap}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus size={14} />
-                    Add Gap
-                  </Button>
+                  <div>
+                    <Label>💼 Business Case</Label>
+                    <Textarea
+                      value={formData.businessCase}
+                      onChange={(value) => updateField('businessCase', value)}
+                      placeholder="Describe the business case and expected ROI..."
+                      rows={4}
+                    />
+                  </div>
                 </div>
+              </div>
 
-                {formData.gaps.length === 0 ? (
-                  <p className="text-xs text-gray-500 italic">No gaps identified yet. Click "Add Gap" to add one.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {formData.gaps.map((gap, index) => (
-                      <div key={gap.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50 relative">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeGap(gap.id)}
-                          className="absolute top-2 right-2 text-gray-400 hover:text-red-600"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
+              {/* SECTION C: Assessment */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 uppercase mb-4">Assessment</h3>
 
-                        <div className="pr-8">
-                          <Textarea
-                            value={gap.description}
-                            onChange={(value) => updateGap(gap.id, 'description', value)}
-                            placeholder="Describe the gap..."
-                            rows={2}
-                            className="text-sm"
-                          />
+                <div className="space-y-4">
+                  <div>
+                    <Label>Current State (As-Is)</Label>
+                    <Textarea
+                      value={formData.currentState}
+                      onChange={(value) => updateField('currentState', value)}
+                      placeholder="Describe the current state before this solution..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Desired State (To-Be)</Label>
+                    <Textarea
+                      value={formData.desiredState}
+                      onChange={(value) => updateField('desiredState', value)}
+                      placeholder="Describe the desired future state after implementation..."
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Gap Analysis */}
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <Label>Gap Analysis</Label>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={addGap}
+                        className="flex items-center gap-2"
+                      >
+                        <Plus size={14} />
+                        Add Gap
+                      </Button>
+                    </div>
+
+                    {formData.gaps.length === 0 ? (
+                      <p className="text-xs text-gray-500 italic">No gaps identified yet. Click "Add Gap" to add one.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {formData.gaps.map((gap, index) => (
+                          <div key={gap.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50 relative">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeGap(gap.id)}
+                              className="absolute top-2 right-2 text-gray-400 hover:text-red-600"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+
+                            <div className="pr-8">
+                              <Textarea
+                                value={gap.description}
+                                onChange={(value) => updateGap(gap.id, 'description', value)}
+                                placeholder="Describe the gap..."
+                                rows={2}
+                                className="text-sm"
+                              />
                         </div>
                       </div>
                     ))}
+                    </div>
+                  )}
                   </div>
-                )}
-              </div>
 
-              <div>
-                <Label>Business Impact</Label>
-                <Textarea
-                  value={formData.businessImpact}
-                  onChange={(value) => updateField('businessImpact', value)}
-                  placeholder="Describe the expected business impact and benefits..."
-                  rows={4}
-                />
+                  <div>
+                    <Label>Business Impact</Label>
+                    <Textarea
+                      value={formData.businessImpact}
+                      onChange={(value) => updateField('businessImpact', value)}
+                      placeholder="Describe the expected business impact and benefits..."
+                      rows={4}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}

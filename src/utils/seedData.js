@@ -1,153 +1,376 @@
 export const seedPlanningData = (planningId, transformationPlanningStore) => {
   const {
     updateBusinessGoal,
+    updateProgram,
     addLevel0Column,
     addComponent,
-    addSubcomponent,
-    getPlanning
+    addProgramItem,
+    addSolution
   } = transformationPlanningStore;
 
   // Update business goal with proper current and desired state
   updateBusinessGoal(planningId, {
     name: 'Øge omsætning via eksisterende og nye leads',
-    description: 'Målsætningen er at øge omsætning med 20% på eksisterende berøringsflade',
+    description: 'Målsætningen er at øge omsætning med 20% på eksisterende berøringsflade gennem implementering af struktureret salgsstyring',
     currentState: 'Vi håndterer leads og kunder uden en samlet struktur. Receptionen distribuerer leads tilfældigt, vi mangler viden om antal leads, vinderrate og pipeline. Ingen systematisk opfølgning eller forecasting. Sælgere arbejder isoleret uden fælles processer.',
     desiredState: 'Komplet CRM-baseret salgsstyring med struktureret leadhåndtering, automatisk routing til rette sælgere, centraliseret registrering af alle kontakter, realtids pipeline-oversigt, systematisk opfølgning, budgetter på kunde- og sælgerniveau, samt præcis forecasting.',
     currentMaturity: 1,
     desiredMaturity: 4
   });
 
-  // Level 0 Capability 1: Inbound leads
-  const column1Id = addLevel0Column(planningId, {
-    name: 'Inbound leads',
-    description: 'Første kontakt med potentielle emner'
+  // Update program information
+  updateProgram(planningId, {
+    name: 'Sales Excellence Program 2024',
+    executiveSummary: `## Program Overview
+
+This comprehensive transformation program aims to modernize our sales operations through a structured CRM implementation and process optimization initiative.
+
+## Key Objectives
+- Increase revenue by 20% through improved lead management
+- Reduce lead response time by 60%
+- Improve sales forecast accuracy to 90%+
+- Implement centralized customer database`,
+    businessCase: `**Investment:** DKK 2.5M over 12 months
+**Expected Return:** 20% revenue increase (DKK 8M annually)
+**Payback Period:** 4.5 months
+
+### Benefits
+- **Operational Excellence:** Structured processes reduce manual work by 40%
+- **Revenue Growth:** Better lead management and follow-up increase win rate from 15% to 25%
+- **Strategic Insight:** Real-time pipeline visibility enables data-driven decisions
+- **Customer Satisfaction:** Faster response times and better service
+
+### Risk Mitigation
+- Phased rollout minimizes business disruption
+- Dedicated change management ensures user adoption
+- Proven technology stack reduces implementation risk`
   });
 
-  // Component 1.1: Inbound mails
-  addComponent(planningId, column1Id, {
-    name: 'Inbound mails',
-    description: 'Indkomne mails er fra web eller sendt direkte til sælgere.',
-    support: 'primary',
+  // ====== PROCESS 1: Inbound Leads ======
+  const process1Id = addLevel0Column(planningId, {
+    name: 'Inbound Leads',
+    description: 'Første kontakt med potentielle emner - håndtering af indkomne forespørgsler fra web, email og telemarketing'
+  });
+
+  const comp1Id = addComponent(planningId, process1Id, {
+    name: 'Lead Reception & Distribution',
+    description: 'Modtagelse og fordeling af indkomne leads fra forskellige kanaler',
+    support: 'transform',
     priority: 'high',
-    currentState: 'Indkomne mails fra web som håndteres af receptionen. De ser på det hver morgen til vores forskellige sælgere. Det er tilfældigt hvem der får hvad. Der indkommer også et mindre antal forespørgsler fra eksisterende kunde og leads via netværk. De skriver direkte til sælgerne. Vi kender ikke reaktionstiden eller hvor mange. Vi kender selvfølgelig dem som bliver til ordre.',
-    desiredCapability: 'Centralt CRM system der automatisk registrerer alle indkomne leads med routing baseret på kompetencer og kapacitet',
-    businessImpact: 'Vi tror at vi kan vinde væsentligt flere opgaver ved at indføre en struktur. Vi vil kunne forecaste og følge op på budgetter',
+    currentState: 'Indkomne mails fra web håndteres af receptionen hver morgen. Leads fordeles tilfældigt til sælgere uden hensyn til kompetencer eller kapacitet. Telemarketing-leads sendes samlet hver fredag. Reaktionstid er ukendt, og vi ved ikke hvor mange leads vi modtager eller mister.',
+    desiredCapability: 'Centralt CRM system med automatisk lead-registrering, intelligent routing baseret på kompetencer og kapacitet, samt realtids notifikationer til relevante sælgere',
+    businessImpact: 'Reduceret responstid fra 2-3 dage til under 2 timer vil øge win-rate med estimeret 10-15 procentpoint. Bedre routing sikrer at leads kommer til de rette sælgere med relevant erfaring.',
     gaps: [
-      { id: Date.now() + '-1', description: 'Have styr på alle indkomne leads' },
-      { id: Date.now() + '-2', description: 'Route forespørgsler/leads til de sælgere som har erfaring' },
-      { id: Date.now() + '-3', description: 'Ensartet flow' },
-      { id: Date.now() + '-4', description: 'Bedre erfaringsudveksling ved diskussion af leads' },
-      { id: Date.now() + '-5', description: 'Bedre budgetter til sælgerne' },
-      { id: Date.now() + '-6', description: 'Viden om antallet af inkomne leads, vundne leads, tabte' },
-      { id: Date.now() + '-7', description: 'Forecasting' }
+      { id: 'gap-1-1', title: 'Lead Tracking', description: 'Mangler centralt system til at registrere og tracke alle indkomne leads' },
+      { id: 'gap-1-2', title: 'Intelligent Routing', description: 'Ingen automatisk fordeling baseret på sælger-kompetencer' },
+      { id: 'gap-1-3', title: 'Response Time', description: 'Manglende processer for hurtig opfølgning på leads' },
+      { id: 'gap-1-4', title: 'Lead Analytics', description: 'Ingen data om lead-volumen, kilder eller konverteringsrater' }
     ]
   });
 
-  // Component 1.2: Telemarketing
-  addComponent(planningId, column1Id, {
-    name: 'Telemarketing',
-    description: 'Emner der kommer fra telemarketing',
-    support: 'secondary',
-    priority: 'low',
-    currentState: 'Alle emner sendes idag til receptionen som videreformidler dem til sælgerne hver fredag. Der er ingen struktur for hvem der får dem.',
-    desiredCapability: 'Telemarketing opretter leads direkte i CRM systemet',
-    businessImpact: 'Vi tror at emner er mere "varme" i dagene efter at telemarketing har talt med dem og derfor er mere motiveret for møder med os. Altså flere leads længere nede i salgstrakten',
+  // ====== PROCESS 2: Lead Qualification ======
+  const process2Id = addLevel0Column(planningId, {
+    name: 'Lead Qualification',
+    description: 'Kvalificering og vurdering af leads - sælgerne modtager og bearbejder potentielle kunder'
+  });
+
+  const comp2Id = addComponent(planningId, process2Id, {
+    name: 'Lead Assessment & Scoring',
+    description: 'Systematisk vurdering af lead-kvalitet og potentiale',
+    support: 'transform',
+    priority: 'high',
+    currentState: 'Sælgere vurderer leads individuelt uden fælles kriterier. Ingen struktureret kvalificeringsproces eller scoring. Information om leads gemmes i forskellige formater (emails, noter, Excel). Manglende viden om lead-status på tværs af sælgere. Ofte falder leads på gulvet hvis sælger er optaget.',
+    desiredCapability: 'Standardiseret kvalificeringsproces i CRM med BANT-kriterier (Budget, Authority, Need, Timeline). Automatisk lead-scoring baseret på adfærd og firmografi. Synlig pipeline med klare stages og handlinger for hver fase.',
+    businessImpact: 'Fokuseret indsats på højværdi-leads øger effektiviteten med 30%. Standardiseret proces sikrer ingen leads mistes. Real-time visibility giver ledelsen bedre forecast-grundlag.',
     gaps: [
-      { id: Date.now() + '-8', description: 'Telemarketing skal oprette leads i centralt system så vi hurtigere kan se emnerne' }
+      { id: 'gap-2-1', title: 'Qualification Framework', description: 'Mangler fælles kriterier for lead-kvalificering' },
+      { id: 'gap-2-2', title: 'Lead Scoring', description: 'Ingen automatisk prioritering af leads baseret på potentiale' },
+      { id: 'gap-2-3', title: 'Pipeline Visibility', description: 'Kan ikke se samlet pipeline eller lead-status' },
+      { id: 'gap-2-4', title: 'Activity Tracking', description: 'Ingen systematisk registrering af kundeinteraktioner' }
     ]
   });
 
-  // Level 0 Capability 2: Salgskontakt
-  const column2Id = addLevel0Column(planningId, {
-    name: 'Salgskontakt',
-    description: 'Sælgerne modtager lead og behandler dem'
+  // ====== PROCESS 3: Opportunity Management ======
+  const process3Id = addLevel0Column(planningId, {
+    name: 'Opportunity Management',
+    description: 'Tilbudsgivning, forhandling og opfølgning på salgsmuligheder'
   });
 
-  // Component 2.1: Kvalificering af lead
-  const component2_1Id = addComponent(planningId, column2Id, {
-    name: 'Kvalificering af lead',
-    description: 'Kvalificering af leads sker af sælgerne',
-    support: 'primary',
+  const comp3Id = addComponent(planningId, process3Id, {
+    name: 'Proposal & Negotiation',
+    description: 'Udarbejdelse af tilbud og styring af forhandlingsprocessen',
+    support: 'enhance',
     priority: 'high',
-    currentState: 'Sælgerne modtager mails fra receptionen og tager kontakt til dem på baggrund af den information der følger med i mails. De mails hvor kunden skriver direkte til sælgeren er proceduren den samme.',
-    desiredCapability: 'Struktureret kvalificeringsproces i CRM med standard kriterier og routing baseret på kompetencer',
-    businessImpact: 'Vi kan lukke væsentligt flere kunder ved at have en proces hvor vi registrerer alt fra lead til kunde. Vi tror der falder for mange leads på gulvet ved at sælgerne ikke lige har tid til at kontakte lead. Vi vil bedre kunne route leads mellem sælgere så vi bliver mere effektive. Sælgere har oftest en motivation til at holde på emner fordi det potentielt kommer under deres omsætningsbudget',
+    currentState: 'Tilbud udarbejdes i Word-skabeloner uden central registrering. Ingen tracking af tilbuds-status eller opfølgning. Sælgere holder tilbud for sig selv for at optimere eget budget. Ledelsen har ingen oversigt over samlet pipeline-værdi eller forecast. Win/loss-analyse sker ikke systematisk.',
+    desiredCapability: 'CRM-integreret tilbudsstyring med version-kontrol, automatiske opfølgningspåmindelser og pipeline-rapportering. Synlig forecast for hele organisationen med konfidensniveauer. Systematisk win/loss-analyse for kontinuerlig forbedring.',
+    businessImpact: 'Øget win-rate fra 15% til 25% gennem bedre opfølgning og timing. Præcis forecasting muliggør bedre ressourceplanlægning. Win/loss-analyse driver proces-forbedringer.',
     gaps: [
-      { id: Date.now() + '-9', description: 'Vi mangler en struktur for hele processen fra lead til kunde' },
-      { id: Date.now() + '-10', description: 'Viden om hvor mange leads sælgeren arbejder på' },
-      { id: Date.now() + '-11', description: 'Viden om hvor meget økonomi der er i de indkomne leads' },
-      { id: Date.now() + '-12', description: 'Routing af leads til de sælgere der har erfaring med området' }
+      { id: 'gap-3-1', title: 'Proposal Tracking', description: 'Ingen centraliseret registrering af tilbud og deres status' },
+      { id: 'gap-3-2', title: 'Follow-up Process', description: 'Mangler systematisk opfølgningsproces' },
+      { id: 'gap-3-3', title: 'Pipeline Forecast', description: 'Kan ikke forecaste samlet pipeline-værdi' },
+      { id: 'gap-3-4', title: 'Win/Loss Analysis', description: 'Ingen struktureret læring fra vundne/tabte tilbud' }
     ]
   });
 
-  // Add subcomponents to "Kvalificering af lead"
-  addSubcomponent(planningId, column2Id, [component2_1Id], {
-    name: 'Registrer at vi har ringet til kunden',
-    description: 'Ring',
-    support: 'primary',
-    priority: 'high',
-    currentState: 'Ingen systematisk registrering',
-    desiredCapability: 'Automatisk logging af alle kundekontakter',
-    businessImpact: 'Bedre sporbarhed og opfølgning'
+  // ====== PROCESS 4: Customer Management ======
+  const process4Id = addLevel0Column(planningId, {
+    name: 'Customer Management',
+    description: 'Løbende håndtering af eksisterende kunder efter ordrevinding'
   });
 
-  addSubcomponent(planningId, column2Id, [component2_1Id], {
-    name: 'Skriv mail til kunden',
-    description: 'Mailkommunikation med leads',
-    support: 'secondary',
-    priority: 'high',
-    currentState: 'Emails sendes uden centraliseret registrering',
-    desiredCapability: 'Integration mellem mailsystem og CRM',
-    businessImpact: 'Komplet kommunikationshistorik tilgængelig for alle sælgere'
-  });
-
-  // Level 0 Capability 3: Tilbudsgivning og opfølgning
-  const column3Id = addLevel0Column(planningId, {
-    name: 'Tilbudsgivning og opfølgning',
-    description: 'Afgivelse af tilbud, tilpasninger og opfølgning'
-  });
-
-  // Component 3.1: Tilbud
-  addComponent(planningId, column3Id, {
-    name: 'Tilbud',
-    description: 'Tilbud til potentielle kunder eller eksisterende kunder',
-    support: 'primary',
-    priority: 'high',
-    currentState: 'Ligesom med leads har vi ikke registreret hvilke tilbud vi har ude. Det giver udfordringer ift. om der bliver fulgt op på dem. Vi kan ikke estimere vores pipeline. Vi ved ikke hvor mange vi taber eller vinder. Sælgerene holder på leads/tilbud for at optimere deres salgsbudget. Vi kender ikke om vi samlet set som organisation er foran eller bagud ift. budget. Tilbud afgives med vores tilbudsskabeloner så her er struktur.',
-    desiredCapability: 'Tilbud registreres i CRM med status tracking, automatiske påmindelser og pipeline oversigt',
-    businessImpact: 'Vi får en ide om hvor forretningen er på vej hen og hvor vi skal sætte ind.',
-    gaps: [
-      { id: Date.now() + '-13', description: 'Viden om hvor meget vi vinder og taber' },
-      { id: Date.now() + '-14', description: 'Forecast til hele forretningen' },
-      { id: Date.now() + '-15', description: 'Route leads til sælgere som ikke har travlt for at skabe bedre vinderchancer' }
-    ]
-  });
-
-  // Level 0 Capability 4: Kundehåndtering
-  const column4Id = addLevel0Column(planningId, {
-    name: 'Kundehåndtering',
-    description: 'Tilbud bliver til ordre og sælgerne får ansvaret for en kunde'
-  });
-
-  // Component 4.1: Kunder
-  addComponent(planningId, column4Id, {
-    name: 'Kunder',
-    description: 'Håndtering af vores kunder',
-    support: 'primary',
+  const comp4Id = addComponent(planningId, process4Id, {
+    name: 'Account Management & Growth',
+    description: 'Strategisk kundestyring med fokus på retention og growth',
+    support: 'enhance',
     priority: 'medium',
-    currentState: 'Sælgerne har generelt godt fat i alle vores kunder. Kunderne er tilfredse, men vi har ikke en struktur som gør at sælgere kan prioritere hvilke kunder der er væsentlige for virksomheden. Det er op til den enkelte sælger. Vi har ikke budgetter på de enkelte kunder og ingen planer for hvornår de kontaktes.',
-    desiredCapability: 'Komplet kundedatabase med segmentering, budgetter, kontaktplaner og historik',
-    businessImpact: 'En struktur for kunderne vil betyde mere fokus på dem der er væsentlige for virksomheden. Vi skal have budgetter så vi kan se både hvor mange projekter hver kunde har men også kunne forecaste for hele virksomheden',
+    currentState: 'Sælgere har generelt godt fat i deres kunder, men ingen systematik. Mangler kundeklassificering og prioritering. Ingen budgetter eller kontaktplaner på kundeniveau. Upsell og cross-sell sker opportunistisk. Kunde-data er spredt i forskellige systemer. Account-reviews sker ikke systematisk.',
+    desiredCapability: 'CRM-baseret account management med kunde-segmentering (A/B/C), strategiske account plans, budgetter og pipeline pr. kunde. Proaktive kontaktplaner baseret på kunde-værdi. Systematiske QBR (Quarterly Business Reviews) med nøglekunder. Fuld visibility i kunde-historik og touchpoints.',
+    businessImpact: 'Fokuseret indsats på A-kunder øger customer lifetime value med 30%. Proaktiv account management reducerer churn fra 8% til under 5%. Systematisk upsell/cross-sell tilføjer 15% ekstra revenue.',
     gaps: [
-      { id: Date.now() + '-16', description: 'Budgetter på kunderne' },
-      { id: Date.now() + '-17', description: 'Plan for kontakt af kunder' },
-      { id: Date.now() + '-18', description: 'Styr på stamdata' },
-      { id: Date.now() + '-19', description: 'Struktur så kunderne kan segmenteres og prioriteres' },
-      { id: Date.now() + '-20', description: 'Mulighed for at se virksomhedens potentiale på tværs af kunder ift omsætning' }
+      { id: 'gap-4-1', title: 'Customer Segmentation', description: 'Ingen systematisk klassificering og prioritering af kunder' },
+      { id: 'gap-4-2', title: 'Account Plans', description: 'Mangler strategiske planer for nøglekunder' },
+      { id: 'gap-4-3', title: 'Revenue Tracking', description: 'Kan ikke tracke budget og potential pr. kunde' },
+      { id: 'gap-4-4', title: 'Customer Health', description: 'Ingen early warning system for churn-risiko' }
     ]
   });
 
-  console.log('✅ Data successfully seeded!');
+  // ====== PROGRAM ITEMS ======
+  const programItem1Id = addProgramItem(planningId, {
+    name: 'CRM Platform Selection & Setup',
+    description: 'Evaluering, valg og opsætning af CRM-platform',
+    strategy: 'new-build',
+    linkedCapabilities: [comp1Id, comp2Id],
+    startDate: new Date().toISOString(),
+    estimatedDuration: 8,
+    durationUnit: 'weeks',
+    businessOwner: 'person-1', // Lars Nielsen
+    technicalOwner: 'person-2', // Maria Hansen
+    vendor: 'vendor-1', // Salesforce
+    investmentBudget: '350000',
+    progressStatus: 'completed',
+
+    // Assessment data
+    selectedAsIsComponents: [comp1Id, comp2Id],
+    asIsUserNotes: 'Nuværende lead-proces er helt manuel og ustruktureret. Receptionen håndterer indkomne leads uden system.',
+    selectedToBeComponents: [comp1Id, comp2Id],
+    toBeUserNotes: 'Salesforce Sales Cloud vil centralisere lead-management med automatisk routing og real-time notifications.',
+    selectedBusinessImpactComponents: [comp1Id, comp2Id],
+    businessImpactUserNotes: 'Primær påvirkning på lead-respons (hurtigere) og kvalificering (bedre). Estimeret 10-15% øget win-rate.',
+    selectedGaps: ['gap-1-1', 'gap-1-2', 'gap-1-3', 'gap-1-4', 'gap-2-1', 'gap-2-2', 'gap-2-3']
+  });
+
+  const programItem2Id = addProgramItem(planningId, {
+    name: 'Sales Process Redesign',
+    description: 'Redesign af salgsprocesser og implementering af nye workflows',
+    strategy: 'transform',
+    linkedCapabilities: [comp2Id, comp3Id],
+    startDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    estimatedDuration: 12,
+    durationUnit: 'weeks',
+    businessOwner: 'person-1',
+    technicalOwner: 'person-2',
+    vendor: 'TBD',
+    investmentBudget: '450000',
+    progressStatus: 'in-progress',
+
+    selectedAsIsComponents: [comp2Id, comp3Id],
+    asIsUserNotes: 'Sælgerne arbejder med egne metoder uden fælles struktur. Tilbud trackes ikke systematisk.',
+    selectedToBeComponents: [comp2Id, comp3Id],
+    toBeUserNotes: 'Standardiserede processer med klare stages, automatisk scoring og systematisk opfølgning.',
+    selectedBusinessImpactComponents: [comp2Id, comp3Id],
+    businessImpactUserNotes: 'Vil øge win-rate betydeligt gennem bedre kvalificering og timing. Forbedret forecast-præcision.',
+    selectedGaps: ['gap-2-2', 'gap-2-3', 'gap-2-4', 'gap-3-1', 'gap-3-2', 'gap-3-3']
+  });
+
+  const programItem3Id = addProgramItem(planningId, {
+    name: 'Account Management Framework',
+    description: 'Implementering af struktureret account management',
+    strategy: 'enhance',
+    linkedCapabilities: [comp4Id],
+    startDate: new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString(),
+    estimatedDuration: 10,
+    durationUnit: 'weeks',
+    businessOwner: 'person-1',
+    technicalOwner: 'person-2',
+    vendor: 'vendor-1',
+    investmentBudget: '280000',
+    progressStatus: 'not-started',
+
+    selectedAsIsComponents: [comp4Id],
+    asIsUserNotes: 'Kundestyring foregår ad-hoc uden systematik eller prioritering.',
+    selectedToBeComponents: [comp4Id],
+    toBeUserNotes: 'ABC-segmentering med strategiske account plans og proaktive kontaktplaner.',
+    selectedBusinessImpactComponents: [comp4Id],
+    businessImpactUserNotes: 'Øget kunde-retention og lifetime value gennem fokuseret account management.',
+    selectedGaps: ['gap-4-1', 'gap-4-2', 'gap-4-3', 'gap-4-4']
+  });
+
+  const programItem4Id = addProgramItem(planningId, {
+    name: 'Change Management & Training',
+    description: 'User adoption program og træning af salgsteam',
+    strategy: 'new-build',
+    linkedCapabilities: [comp1Id, comp2Id, comp3Id, comp4Id],
+    startDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    estimatedDuration: 16,
+    durationUnit: 'weeks',
+    businessOwner: 'person-1',
+    technicalOwner: 'person-3',
+    vendor: 'TBD',
+    investmentBudget: '180000',
+    progressStatus: 'not-started',
+
+    selectedAsIsComponents: [comp1Id, comp2Id, comp3Id, comp4Id],
+    asIsUserNotes: 'Ingen formaliseret træning. Sælgere lærer gennem trial-and-error.',
+    selectedToBeComponents: [comp1Id, comp2Id, comp3Id, comp4Id],
+    toBeUserNotes: 'Struktureret onboarding og løbende træningsprogram. Change champions i hvert team.',
+    selectedBusinessImpactComponents: [comp1Id, comp2Id, comp3Id, comp4Id],
+    businessImpactUserNotes: 'Kritisk for bruger-adoption. Sikrer at investeringen realiseres gennem faktisk brug.',
+    selectedGaps: []
+  });
+
+  // ====== SOLUTIONS (Projects created from Program Items) ======
+  addSolution(planningId, {
+    planningId: planningId,
+    programId: null,
+    programItemId: programItem1Id,
+
+    name: 'Salesforce Sales Cloud Implementation',
+    description: 'Implementation of Salesforce Sales Cloud as the core CRM platform',
+    strategy: 'new-build',
+    group: 'group-1',
+
+    // Business Context (inherited from planning/program)
+    businessGoal: 'Målsætningen er at øge omsætning med 20% på eksisterende berøringsflade gennem implementering af struktureret salgsstyring',
+    businessCase: 'Investment: DKK 2.5M over 12 months. Expected Return: 20% revenue increase (DKK 8M annually). Payback Period: 4.5 months.',
+
+    // Assessment (inherited from program item)
+    selectedAsIsProgramItems: [],
+    selectedAsIsComponents: [comp1Id, comp2Id],
+    asIsUserNotes: 'Nuværende lead-proces er helt manuel og ustruktureret. Receptionen håndterer indkomne leads uden system.',
+    selectedToBeProgramItems: [],
+    selectedToBeComponents: [comp1Id, comp2Id],
+    toBeUserNotes: 'Salesforce Sales Cloud vil centralisere lead-management med automatisk routing og real-time notifications.',
+    selectedBusinessImpactProgramItems: [],
+    selectedBusinessImpactComponents: [comp1Id, comp2Id],
+    businessImpactUserNotes: 'Primær påvirkning på lead-respons (hurtigere) og kvalificering (bedre). Estimeret 10-15% øget win-rate.',
+
+    gaps: [
+      { id: 'gap-1-1', title: 'Lead Tracking', description: 'Mangler centralt system til at registrere og tracke alle indkomne leads', isInherited: true, sourceComponentId: comp1Id },
+      { id: 'gap-1-2', title: 'Intelligent Routing', description: 'Ingen automatisk fordeling baseret på sælger-kompetencer', isInherited: true, sourceComponentId: comp1Id },
+      { id: 'gap-1-3', title: 'Response Time', description: 'Manglende processer for hurtig opfølgning på leads', isInherited: true, sourceComponentId: comp1Id },
+      { id: 'gap-1-4', title: 'Lead Analytics', description: 'Ingen data om lead-volumen, kilder eller konverteringsrater', isInherited: true, sourceComponentId: comp1Id }
+    ],
+
+    // Execution
+    expectedStart: new Date().toISOString(),
+    estimatedDuration: 6,
+    durationUnit: 'months',
+    dependencies: [],
+    businessOwner: 'person-1',
+    technicalOwner: 'person-2',
+    vendor: 'vendor-1',
+    implementationPartner: 'vendor-1',
+
+    investmentBudget: '1200000',
+    annualLicenseCost: '240000',
+    annualMaintenance: '120000',
+    latestReview: '',
+    nextReview: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+
+    actions: [
+      {
+        id: 'action-1-1',
+        description: 'Complete technical infrastructure setup',
+        owner: 'person-2',
+        deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'in-progress'
+      },
+      {
+        id: 'action-1-2',
+        description: 'Configure lead routing rules',
+        owner: 'person-2',
+        deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending'
+      },
+      {
+        id: 'action-1-3',
+        description: 'Import existing customer data',
+        owner: 'person-1',
+        deadline: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending'
+      }
+    ],
+
+    domain: 'Sales',
+    projectGroup: 'group-1',
+    linkedProgramItems: [],
+
+    // Sync tracking
+    analysisLastSyncedAt: new Date().toISOString()
+  });
+
+  addSolution(planningId, {
+    planningId: planningId,
+    programId: null,
+    programItemId: programItem2Id,
+
+    name: 'Sales Process Optimization',
+    description: 'Redesign and implementation of standardized sales processes',
+    strategy: 'transform',
+    group: 'group-2',
+
+    businessGoal: 'Målsætningen er at øge omsætning med 20% på eksisterende berøringsflade gennem implementering af struktureret salgsstyring',
+    businessCase: 'Investment: DKK 2.5M over 12 months. Expected Return: 20% revenue increase (DKK 8M annually). Payback Period: 4.5 months.',
+
+    selectedAsIsComponents: [comp2Id, comp3Id],
+    asIsUserNotes: 'Sælgerne arbejder med egne metoder uden fælles struktur. Tilbud trackes ikke systematisk.',
+    selectedToBeComponents: [comp2Id, comp3Id],
+    toBeUserNotes: 'Standardiserede processer med klare stages, automatisk scoring og systematisk opfølgning.',
+    selectedBusinessImpactComponents: [comp2Id, comp3Id],
+    businessImpactUserNotes: 'Vil øge win-rate betydeligt gennem bedre kvalificering og timing. Forbedret forecast-præcision.',
+
+    gaps: [
+      { id: 'gap-2-2', title: 'Lead Scoring', description: 'Ingen automatisk prioritering af leads baseret på potentiale', isInherited: true, sourceComponentId: comp2Id },
+      { id: 'gap-3-1', title: 'Proposal Tracking', description: 'Ingen centraliseret registrering af tilbud og deres status', isInherited: true, sourceComponentId: comp3Id },
+      { id: 'gap-3-2', title: 'Follow-up Process', description: 'Mangler systematisk opfølgningsproces', isInherited: true, sourceComponentId: comp3Id }
+    ],
+
+    expectedStart: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    estimatedDuration: 4,
+    durationUnit: 'months',
+    businessOwner: 'person-1',
+    technicalOwner: 'person-2',
+    vendor: 'TBD',
+    implementationPartner: '',
+
+    investmentBudget: '450000',
+    annualLicenseCost: '0',
+    annualMaintenance: '50000',
+
+    actions: [
+      {
+        id: 'action-2-1',
+        description: 'Map current sales process',
+        owner: 'person-1',
+        deadline: new Date(Date.now() + 70 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending'
+      },
+      {
+        id: 'action-2-2',
+        description: 'Design future state process',
+        owner: 'person-1',
+        deadline: new Date(Date.now() + 84 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending'
+      }
+    ],
+
+    domain: 'Sales',
+    projectGroup: 'group-2',
+
+    analysisLastSyncedAt: new Date().toISOString()
+  });
+
+  console.log('✅ Comprehensive planning data with 4 processes, program items, and solutions successfully seeded!');
 };
 
 // Seed the entire database with dummy data
@@ -239,138 +462,7 @@ export const seedDatabase = () => {
     // Update settings storage
     localStorage.setItem('settings-storage', JSON.stringify({ state: settingsData, version: 0 }));
 
-    // Create transformation plannings
-    const plannings = [
-      {
-        id: `planning-${Date.now()}-1`,
-        name: 'CRM Transformation 2024',
-        businessGoal: {
-          name: 'Implement CRM System',
-          description: 'Roll out Salesforce CRM to increase sales by 20%',
-          currentState: 'No centralized CRM system',
-          desiredState: 'Fully integrated Salesforce CRM with automated workflows',
-          currentMaturity: 1,
-          desiredMaturity: 4
-        },
-        level0Columns: [],
-        programItems: [
-          {
-            id: `program-${Date.now()}-1`,
-            name: 'CRM Platform Selection',
-            linkedCapabilities: [],
-            status: 'completed',
-            expectedStart: new Date().toISOString(),
-            estimatedDuration: 2,
-            durationUnit: 'months',
-            owner: 'Maria Hansen',
-            scope: 'leverage'
-          },
-          {
-            id: `program-${Date.now()}-2`,
-            name: 'CRM Implementation',
-            linkedCapabilities: [],
-            status: 'in-progress',
-            expectedStart: new Date().toISOString(),
-            estimatedDuration: 6,
-            durationUnit: 'months',
-            owner: 'Maria Hansen',
-            scope: 'transform'
-          }
-        ],
-        solutions: [
-          {
-            id: `solution-${Date.now()}-1`,
-            name: 'Salesforce Sales Cloud',
-            description: 'CRM platform for sales team',
-            scope: 'transform',
-            currentState: 'Using spreadsheets',
-            desiredState: 'Fully integrated CRM',
-            gaps: [
-              { id: 'gap-1', description: 'No centralized customer database' },
-              { id: 'gap-2', description: 'Manual reporting processes' }
-            ],
-            businessImpact: 'Increase sales efficiency by 30%',
-            expectedStart: new Date().toISOString(),
-            estimatedDuration: 6,
-            durationUnit: 'months',
-            businessOwner: 'Lars Nielsen',
-            technicalOwner: 'Maria Hansen',
-            implementationPartner: 'Salesforce',
-            vendor: 'Salesforce',
-            investmentBudget: '500000',
-            annualLicenseCost: '120000',
-            annualMaintenance: '50000',
-            actionItems: [],
-            domain: 'Sales',
-            projectGroup: 'CRM Implementation',
-            linkedProgramItems: []
-          }
-        ],
-        lastModified: new Date().toISOString()
-      },
-      {
-        id: `planning-${Date.now()}-2`,
-        name: 'Digital Marketing Platform',
-        businessGoal: {
-          name: 'Modernize Marketing',
-          description: 'Implement modern marketing automation platform',
-          currentState: 'Manual marketing processes',
-          desiredState: 'Automated marketing with analytics',
-          currentMaturity: 2,
-          desiredMaturity: 4
-        },
-        level0Columns: [],
-        programItems: [],
-        solutions: [
-          {
-            id: `solution-${Date.now()}-2`,
-            name: 'HubSpot Marketing Hub',
-            description: 'Marketing automation platform',
-            scope: 'build',
-            currentState: 'No marketing automation',
-            desiredState: 'Full marketing automation with lead scoring',
-            gaps: [
-              { id: 'gap-3', description: 'No email automation' },
-              { id: 'gap-4', description: 'No lead scoring' }
-            ],
-            businessImpact: 'Generate 50% more qualified leads',
-            expectedStart: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            estimatedDuration: 4,
-            durationUnit: 'months',
-            businessOwner: 'Lars Nielsen',
-            technicalOwner: 'Maria Hansen',
-            implementationPartner: 'HubSpot',
-            vendor: 'HubSpot',
-            investmentBudget: '300000',
-            annualLicenseCost: '80000',
-            annualMaintenance: '30000',
-            actionItems: [],
-            domain: 'Marketing',
-            projectGroup: 'Customer Service Enhancement',
-            linkedProgramItems: []
-          }
-        ],
-        lastModified: new Date().toISOString()
-      },
-      {
-        id: `planning-${Date.now()}-3`,
-        name: 'Process Automation Initiative',
-        businessGoal: {
-          name: 'Automate Manual Processes',
-          description: 'Reduce manual work by 40% through automation',
-          currentState: 'Many manual, time-consuming processes',
-          desiredState: 'Automated workflows with minimal manual intervention',
-          currentMaturity: 2,
-          desiredMaturity: 5
-        },
-        level0Columns: [],
-        programItems: [],
-        solutions: [],
-        lastModified: new Date().toISOString()
-      }
-    ];
-
-    localStorage.setItem('transformationPlannings', JSON.stringify(plannings));
+    console.log('✅ Settings data seeded successfully!');
 
     return { success: true };
   } catch (error) {

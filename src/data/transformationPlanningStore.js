@@ -251,14 +251,68 @@ export function useTransformationPlanning() {
       if (p.id === planningId) {
         const newSolution = {
           id: Date.now().toString(),
+
+          // Links (NEW - ensure these are always set)
+          planningId: planningId,
+          programId: p.programId || null,
+          programItemId: solution.programItemId || null,
+
+          // Basic Info
           name: solution.name,
           description: solution.description || '',
-          scope: solution.scope || 'not-touched',
+          group: solution.group || '',
+          strategy: solution.strategy || 'not-touched',
           linkedProgramItems: solution.linkedProgramItems || [],
-          budget: solution.budget || '',
-          vendor: solution.vendor || '',
+
+          // NEW: Copy from Planning/Program (editable in Solution)
+          businessGoal: solution.businessGoal || '',
+          businessCase: solution.businessCase || '',
+
+          // NEW: Sync tracking (only for solutions from planning)
+          analysisLastSyncedAt: solution.analysisLastSyncedAt || null,
+
+          // Assessment - Selective inheritance structure
+          selectedAsIsProgramItems: solution.selectedAsIsProgramItems || [],
+          selectedAsIsComponents: solution.selectedAsIsComponents || [],
+          asIsUserNotes: solution.asIsUserNotes || '',
+          selectedToBeProgramItems: solution.selectedToBeProgramItems || [],
+          selectedToBeComponents: solution.selectedToBeComponents || [],
+          toBeUserNotes: solution.toBeUserNotes || '',
+          selectedBusinessImpactProgramItems: solution.selectedBusinessImpactProgramItems || [],
+          selectedBusinessImpactComponents: solution.selectedBusinessImpactComponents || [],
+          businessImpactUserNotes: solution.businessImpactUserNotes || '',
+          gaps: solution.gaps || [],
+
+          // Planning & Timeline
+          expectedStart: solution.expectedStart || '',
+          estimatedDuration: solution.estimatedDuration || '',
+          durationUnit: solution.durationUnit || 'weeks',
+          dependencies: solution.dependencies || [],
+
+          // Ownership
+          businessOwner: solution.businessOwner || '',
+          technicalOwner: solution.technicalOwner || '',
+          vendor: solution.vendor || 'TBD',
           implementationPartner: solution.implementationPartner || '',
-          expectedGoLive: solution.expectedGoLive || ''
+
+          // Action Plan
+          actions: solution.actions || [],
+
+          // Budget & Cost
+          investmentBudget: solution.investmentBudget || '',
+          annualLicenseCost: solution.annualLicenseCost || '',
+          annualMaintenance: solution.annualMaintenance || '',
+          latestReview: solution.latestReview || '',
+          nextReview: solution.nextReview || '',
+
+          // Classification
+          domain: solution.domain || '',
+          projectGroup: solution.projectGroup || '',
+
+          // Legacy fields (backward compatibility)
+          scope: solution.scope || solution.strategy || 'not-touched',
+          budget: solution.budget || solution.investmentBudget || '',
+          expectedGoLive: solution.expectedGoLive || solution.expectedStart || ''
         };
         return {
           ...p,
@@ -291,6 +345,229 @@ export function useTransformationPlanning() {
         return {
           ...p,
           solutions: p.solutions.filter(sol => sol.id !== solutionId),
+          lastModified: new Date().toISOString()
+        };
+      }
+      return p;
+    }));
+  };
+
+  // Create solution from program item with auto-populated data
+  const createSolutionFromProgramItem = (planningId, programItemId) => {
+    let newSolutionId = null;
+
+    setPlannings(plannings.map(p => {
+      if (p.id === planningId) {
+        // Find the program item
+        const programItem = p.programItems?.find(pi => pi.id === programItemId);
+        if (!programItem) {
+          console.error('Program item not found:', programItemId);
+          return p;
+        }
+
+        // Get business context from planning and program
+        const businessGoal = p.businessGoal?.description || '';
+        const businessCase = p.program?.businessCase || '';
+
+        // Collect all components from level0 columns for gap lookup
+        const allComponents = (p.level0Columns || []).flatMap(col => [
+          ...(col.components || []),
+          ...(col.components || []).flatMap(c => c.subcomponents || [])
+        ]);
+
+        // Generate gaps with inheritance tracking
+        const gaps = (programItem.selectedGaps || []).map(gapId => {
+          // Find the gap in components
+          let foundGap = null;
+          let sourceComponent = null;
+
+          for (const component of allComponents) {
+            const gap = component.gaps?.find(g => g.id === gapId);
+            if (gap) {
+              foundGap = gap;
+              sourceComponent = component;
+              break;
+            }
+          }
+
+          if (foundGap) {
+            return {
+              id: foundGap.id,
+              title: foundGap.title || '',
+              description: foundGap.description || '',
+              isInherited: true,
+              sourceComponentId: sourceComponent.id
+            };
+          }
+
+          // Fallback if gap not found
+          return {
+            id: gapId,
+            title: 'Gap',
+            description: '',
+            isInherited: true,
+            sourceComponentId: null
+          };
+        });
+
+        // Create new solution with all data from program item
+        newSolutionId = Date.now().toString();
+        const newSolution = {
+          id: newSolutionId,
+
+          // Links
+          planningId: planningId,
+          programId: p.programId || null,
+          programItemId: programItemId,
+
+          // Basic Info (from program item)
+          name: programItem.name,
+          description: programItem.description || '',
+          strategy: programItem.strategy || 'not-touched',
+          group: '',
+          linkedProgramItems: [],
+
+          // Business Context (copied from planning/program)
+          businessGoal,
+          businessCase,
+
+          // Assessment (copied from program item)
+          selectedAsIsProgramItems: programItem.selectedAsIsProgramItems || [],
+          selectedAsIsComponents: programItem.selectedAsIsComponents || [],
+          asIsUserNotes: programItem.asIsUserNotes || '',
+          selectedToBeProgramItems: programItem.selectedToBeProgramItems || [],
+          selectedToBeComponents: programItem.selectedToBeComponents || [],
+          toBeUserNotes: programItem.toBeUserNotes || '',
+          selectedBusinessImpactProgramItems: programItem.selectedBusinessImpactProgramItems || [],
+          selectedBusinessImpactComponents: programItem.selectedBusinessImpactComponents || [],
+          businessImpactUserNotes: programItem.businessImpactUserNotes || '',
+          gaps: gaps,
+
+          // Planning & Timeline (copied from program item)
+          expectedStart: programItem.startDate || '',
+          estimatedDuration: programItem.estimatedDuration || '',
+          durationUnit: programItem.durationUnit || 'weeks',
+          dependencies: [],
+
+          // Ownership (copied from program item)
+          businessOwner: programItem.businessOwner || '',
+          technicalOwner: programItem.technicalOwner || '',
+          vendor: programItem.vendor || 'TBD',
+          implementationPartner: '',
+
+          // Budget & Cost (copied from program item)
+          investmentBudget: programItem.investmentBudget || '',
+          annualLicenseCost: '',
+          annualMaintenance: '',
+          latestReview: '',
+          nextReview: '',
+
+          // Action Plan
+          actions: [],
+
+          // Classification
+          domain: '',
+          projectGroup: '',
+
+          // Sync tracking
+          analysisLastSyncedAt: new Date().toISOString(),
+
+          // Legacy fields
+          scope: programItem.strategy || 'not-touched',
+          budget: programItem.investmentBudget || '',
+          expectedGoLive: programItem.startDate || ''
+        };
+
+        return {
+          ...p,
+          solutions: [...(p.solutions || []), newSolution],
+          lastModified: new Date().toISOString()
+        };
+      }
+      return p;
+    }));
+
+    return newSolutionId;
+  };
+
+  const refreshSolutionFromPlanning = (planningId, solutionId) => {
+    setPlannings(plannings.map(p => {
+      if (p.id === planningId) {
+        const solution = p.solutions.find(sol => sol.id === solutionId);
+        if (!solution || !solution.planningId) {
+          return p; // Skip if solution doesn't exist or isn't from planning
+        }
+
+        // Find the source program item
+        const programItem = p.programItems.find(pi => pi.id === solution.programItemId);
+        if (!programItem) {
+          return p; // Skip if program item doesn't exist
+        }
+
+        // Get fresh business context
+        const businessGoal = p.businessGoal?.description || '';
+        const businessCase = p.program?.businessCase || '';
+
+        // Update solution with fresh data from planning
+        const updatedSolution = {
+          ...solution,
+          // Update business context
+          businessGoal,
+          businessCase,
+
+          // Update assessment from program item
+          selectedAsIsProgramItems: programItem.selectedAsIsProgramItems || [],
+          selectedAsIsComponents: programItem.selectedAsIsComponents || [],
+          asIsUserNotes: programItem.asIsUserNotes || '',
+          selectedToBeProgramItems: programItem.selectedToBeProgramItems || [],
+          selectedToBeComponents: programItem.selectedToBeComponents || [],
+          toBeUserNotes: programItem.toBeUserNotes || '',
+          selectedBusinessImpactProgramItems: programItem.selectedBusinessImpactProgramItems || [],
+          selectedBusinessImpactComponents: programItem.selectedBusinessImpactComponents || [],
+          businessImpactUserNotes: programItem.businessImpactUserNotes || '',
+
+          // Update gaps from program item
+          gaps: (programItem.selectedGaps || []).map(gapId => {
+            // Try to find the gap in components
+            const allComponents = (p.level0Columns || []).flatMap(col => [
+              ...(col.components || []),
+              ...(col.components || []).flatMap(c => c.subcomponents || [])
+            ]);
+
+            const component = allComponents.find(c =>
+              (c.gaps || []).some(g => (g.id || g) === gapId)
+            );
+
+            const gap = component?.gaps?.find(g => (g.id || g) === gapId);
+
+            return gap ? {
+              id: gap.id || gapId,
+              title: gap.title || '',
+              description: gap.description || '',
+              isInherited: true,
+              sourceComponentId: component?.id
+            } : {
+              id: gapId,
+              description: '',
+              isInherited: true
+            };
+          }),
+
+          // Update sync timestamp
+          analysisLastSyncedAt: new Date().toISOString(),
+
+          // PRESERVE execution data - don't update these fields:
+          // - name, description, strategy
+          // - expectedStart, estimatedDuration, investmentBudget
+          // - businessOwner, technicalOwner, vendor
+          // - actions, domain, projectGroup, etc.
+        };
+
+        return {
+          ...p,
+          solutions: p.solutions.map(sol =>
+            sol.id === solutionId ? updatedSolution : sol
+          ),
           lastModified: new Date().toISOString()
         };
       }
@@ -732,6 +1009,8 @@ export function useTransformationPlanning() {
     deleteProgramItem,
     addSolution,
     updateSolution,
-    deleteSolution
+    deleteSolution,
+    createSolutionFromProgramItem,
+    refreshSolutionFromPlanning
   };
 }

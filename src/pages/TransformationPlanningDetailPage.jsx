@@ -42,6 +42,7 @@ export function TransformationPlanningDetailPage() {
   const [expandedComponents, setExpandedComponents] = useState({}); // Track which components are expanded
 
   const {
+    plannings,
     getPlanning,
     addLevel0Column,
     updateLevel0Column,
@@ -63,7 +64,9 @@ export function TransformationPlanningDetailPage() {
     deleteProgramItem,
     addSolution,
     updateSolution,
-    deleteSolution
+    deleteSolution,
+    createSolutionFromProgramItem,
+    refreshSolutionFromPlanning
   } = useTransformationPlanning();
 
   const planning = getPlanning(id);
@@ -1159,6 +1162,12 @@ export function TransformationPlanningDetailPage() {
           setSelectedProgramItem(null);
         }}
         onSave={handleUpdateProgramItem}
+        onCreateProject={(programItemId) => {
+          const newSolutionId = createSolutionFromProgramItem(id, programItemId);
+          if (newSolutionId) {
+            console.log('Successfully created project from program item:', newSolutionId);
+          }
+        }}
         programItem={selectedProgramItem}
         capabilities={getAllComponents()}
       />
@@ -1195,8 +1204,11 @@ export function TransformationPlanningDetailPage() {
           setSelectedSolution(null);
         }}
         onSave={handleUpdateSolution}
+        onRefresh={(solutionId) => refreshSolutionFromPlanning(id, solutionId)}
         solution={selectedSolution}
         programItems={planning.programItems || []}
+        plannings={plannings}
+        currentPlanningId={id}
       />
 
       <CapabilityReportDialog

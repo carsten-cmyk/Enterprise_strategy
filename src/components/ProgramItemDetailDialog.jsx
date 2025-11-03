@@ -8,6 +8,7 @@ import {
 } from './ui/Dialog';
 import { Input, Textarea, Label } from './ui/Input';
 import { Button } from './ui/Button';
+import { Rocket } from 'lucide-react';
 
 const TABS = [
   { id: 'basic', label: 'Basic Info' },
@@ -34,7 +35,7 @@ const PROGRESS_STATUS_OPTIONS = [
   { value: 'on-hold', label: 'On Hold', color: 'bg-orange-500' }
 ];
 
-export function ProgramItemDetailDialog({ open, onClose, onSave, programItem, capabilities = [] }) {
+export function ProgramItemDetailDialog({ open, onClose, onSave, onCreateProject, programItem, capabilities = [] }) {
   const [activeTab, setActiveTab] = useState('basic');
   const [formData, setFormData] = useState({
     name: '',
@@ -751,16 +752,47 @@ export function ProgramItemDetailDialog({ open, onClose, onSave, programItem, ca
         </div>
 
         <DialogFooter>
-          <Button variant="secondary" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleSave}
-            disabled={!isValid}
-          >
-            Save Changes
-          </Button>
+          <div className="flex justify-between items-center w-full">
+            {/* Left side: Create Project button */}
+            <div>
+              {programItem && onCreateProject && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    if (window.confirm(
+                      'Create Project from Program Item?\n\n' +
+                      'This will create a new Solution/Project with:\n' +
+                      '• All analysis data from this Program Item\n' +
+                      '• Business Goal and Business Case from Planning\n' +
+                      '• Timeline, budget, and ownership settings\n\n' +
+                      'You can edit the project after creation.'
+                    )) {
+                      onCreateProject(programItem.id);
+                      handleClose();
+                    }
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Rocket size={16} />
+                  Create Project
+                </Button>
+              )}
+            </div>
+
+            {/* Right side: Cancel and Save buttons */}
+            <div className="flex gap-3">
+              <Button variant="secondary" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleSave}
+                disabled={!isValid}
+              >
+                Save Changes
+              </Button>
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

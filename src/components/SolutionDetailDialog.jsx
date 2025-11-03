@@ -13,7 +13,7 @@ import { useSettings } from '../data/settingsStore';
 
 const TABS = [
   { id: 'basic', label: 'Basic Info' },
-  { id: 'assessment', label: 'Assessment' },
+  { id: 'assessment', label: 'Analysis' },
   { id: 'planning', label: 'Time & Schedule' },
   { id: 'ownership', label: 'Ownership' },
   { id: 'budget', label: 'Budget' },
@@ -29,7 +29,7 @@ const SUPPORT_OPTIONS = [
   { value: 'not-touched', label: 'TBD', color: 'bg-slate-100', textColor: 'text-slate-700', border: 'border-2 border-slate-300' }
 ];
 
-export function SolutionDetailDialog({ open, onClose, onSave, solution, programItems = [], plannings = [], currentPlanningId = null }) {
+export function SolutionDetailDialog({ open, onClose, onSave, onRefresh, solution, programItems = [], plannings = [], currentPlanningId = null }) {
   const { people, vendors, groups, addPerson, addVendor } = useSettings();
   const [activeTab, setActiveTab] = useState('basic');
   const [showAddPersonDialog, setShowAddPersonDialog] = useState(false);
@@ -43,6 +43,10 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, programI
     group: '',
     strategy: 'not-touched',
     linkedProgramItems: [],
+
+    // NEW: Context fields from Planning/Program
+    businessGoal: '',
+    businessCase: '',
 
     // Assessment - using new selective inheritance field structure
     selectedAsIsProgramItems: [],
@@ -125,6 +129,10 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, programI
         group: solution.group || '',
         strategy: solution.strategy || solution.scope || 'not-touched',
         linkedProgramItems: solution.linkedProgramItems || [],
+
+        // NEW: Context fields from Planning/Program
+        businessGoal: solution.businessGoal || '',
+        businessCase: solution.businessCase || '',
 
         // Assessment - new selective inheritance fields
         selectedAsIsProgramItems: migratedAsIsProgramItems,
@@ -545,6 +553,35 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, programI
                 />
               </div>
 
+              <div className="border-t border-gray-200 pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Context from Planning</h4>
+                <p className="text-xs text-gray-500 mb-3">
+                  These fields are copied from the Planning session and can be edited for this specific solution.
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>Business Goal</Label>
+                    <Textarea
+                      value={formData.businessGoal}
+                      onChange={(value) => updateField('businessGoal', value)}
+                      placeholder="Copy of the business goal from Planning (editable)..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Business Case</Label>
+                    <Textarea
+                      value={formData.businessCase}
+                      onChange={(value) => updateField('businessCase', value)}
+                      placeholder="Copy of the business case from Program (editable)..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <Label>Strategy</Label>
                 <div className="flex flex-wrap gap-3 mt-2">
@@ -589,9 +626,164 @@ export function SolutionDetailDialog({ open, onClose, onSave, solution, programI
             </div>
           )}
 
-          {/* Assessment Tab */}
+          {/* Analysis Tab */}
           {activeTab === 'assessment' && (
             <div className="space-y-8">
+              {/* SECTION A: Source & Sync Status - Only if from Planning */}
+              {solution?.planningId && (
+                <div className="pb-8 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Source & Sync Status</h3>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-semibold text-gray-700">📊 Source Planning:</span>
+                      <span className="text-blue-700">
+                        {plannings.find(p => p.id === solution.planningId)?.name || 'Unknown Planning'}
+                      </span>
+                    </div>
+
+                    {solution.programId && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-semibold text-gray-700">📋 Program:</span>
+                        <span className="text-gray-600">
+                          {plannings.find(p => p.id === solution.planningId)?.program?.name || 'Unknown Program'}
+                        </span>
+                      </div>
+                    )}
+
+                    {solution.programItemId && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-semibold text-gray-700">🎯 Program Item:</span>
+                        <span className="text-gray-600">
+                          {programItems.find(pi => pi.id === solution.programItemId)?.name || 'Unknown Item'}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-semibold text-gray-700">🔄 Last Synced:</span>
+                      <span className="text-gray-600">
+                        {solution.analysisLastSyncedAt
+                          ? new Date(solution.analysisLastSyncedAt).toLocaleString('en-GB', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                          : 'Never synced'}
+                      </span>
+                    </div>
+
+                    {/* Warning banner if outdated or never synced */}
+                    {(!solution.analysisLastSyncedAt ||
+                      new Date() - new Date(solution.analysisLastSyncedAt) > 24 * 60 * 60 * 1000) && (
+                      <div className="mt-3 pt-3 border-t border-blue-300">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-amber-700">
+                            <span>⚠️</span>
+                            <span className="text-sm font-medium">
+                              {!solution.analysisLastSyncedAt
+                                ? 'Not yet synced from Planning'
+                                : 'Data may be outdated'}
+                            </span>
+                          </div>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              const confirmed = window.confirm(
+                                'Refresh Analysis Data\n\n' +
+                                'This will update analysis data from the Planning Session.\n\n' +
+                                '⚠️ Your manual edits will be REPLACED:\n' +
+                                '- Business Goal\n' +
+                                '- Business Case\n' +
+                                '- As-Is / To-Be / Business Impact assessments\n' +
+                                '- Gaps list\n\n' +
+                                '✓ Execution data will be PRESERVED:\n' +
+                                '- Timeline, budget, status\n' +
+                                '- Actions, ownership\n' +
+                                '- Custom notes\n\n' +
+                                'Do you want to continue?'
+                              );
+
+                              if (confirmed && onRefresh) {
+                                onRefresh(solution.id);
+                                // Reload the solution data after refresh
+                                handleClose();
+                              }
+                            }}
+                          >
+                            Refresh from Planning
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION B: Business Context */}
+              <div className="pb-8 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Context</h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>🎯 Business Goal</Label>
+                    <Textarea
+                      value={formData.businessGoal}
+                      onChange={(value) => updateField('businessGoal', value)}
+                      placeholder="Describe the business goal for this solution/project..."
+                      rows={4}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>💼 Business Case</Label>
+                    <Textarea
+                      value={formData.businessCase}
+                      onChange={(value) => updateField('businessCase', value)}
+                      placeholder="Describe the business case and expected ROI..."
+                      rows={4}
+                    />
+                  </div>
+
+                  {solution?.planningId && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-sm text-blue-800">
+                        ℹ️ These fields are inherited from Planning/Program and can be edited for this specific project.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Components Affected - only if from planning */}
+                  {solution?.planningId && getLinkedProgramItems().length > 0 && (
+                    <div className="mt-4">
+                      <Label>🧩 Components Affected (from Planning)</Label>
+                      <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                          {getLinkedProgramItems().map(item => {
+                            const capability = (currentPlanningId && plannings.find(p => p.id === currentPlanningId)?.level0Columns || [])
+                              .flatMap(col => col.components || [])
+                              .find(comp => item.linkedCapabilities?.includes(comp.id));
+
+                            return (
+                              <li key={item.id}>
+                                <span className="font-medium">{item.name}</span>
+                                {capability && (
+                                  <span className="text-gray-500"> → {capability.name}</span>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SECTION C: Assessment (Existing) */}
               {/* AS-IS SECTION */}
               <div className="pb-8 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">As-Is (Current State)</h3>
